@@ -1,0 +1,51 @@
+% THE PREAMBLE
+% {
+
+% Packages used.
+
+\usepackage[a4paper, margin=2cm]{geometry} % Allows setting margins.
+\usepackage[utf8]{inputenc}   % UTF-8 encoding.
+\usepackage[T1]{fontenc} % Font encodings.
+\usepackage{titling} % For title formating.
+\usepackage{tikz} % For grids.
+\usepackage{xcolor} % For colours.
+\usepackage{amsmath} % Most math commands.
+\usepackage{amssymb} % For math symbols.
+\usepackage{enumitem} % For enumerating items.
+\usepackage{hyperref} % Linking documents and websites.
+\usepackage{import} % Importing ipynb code and other files.
+\usepackage{float} % Most often used to stop figures from moving.
+\usepackage{tabularx} % More complex tables.
+\usepackage[slovene]{babel}
+\usepackage{longtable}
+\usepackage{tcolorbox} % For the coloured boxes used in pseudocode.
+\usepackage{multicol}
+\usepackage{multirow} 
+\usepackage[table]{colortbl}
+\usepackage{titlesec}
+% Setting the document environment.
+
+\emergencystretch 3em
+\setlength{\parindent}{0pt} % No indent.
+\setlength{\parskip}{10pt} % White space between paragraphs.
+% Setting the centering so it doesn't have too much space at the start and end.
+\BeforeBeginEnvironment{center}{\setlength{\parskip}{0pt}} 
+\AfterEndEnvironment{center}{\setlength{\parskip}{\baselineskip}}
+\setlength{\droptitle}{-5em} % Making the title a little higher.
+\hypersetup{
+    colorlinks=true,    
+    urlcolor=black!60!blue,
+    citecolor=black!60!blue,
+    linkcolor=black!60!blue
+}
+
+\titlespacing*{\section}{0pt}{2pt}{4pt}  % Adjusts spacing for \section
+\titlespacing*{\subsection}{0pt}{3pt}{3pt}  % Adjusts spacing for \subsection
+\renewcommand{\maketitle}{%
+  \begin{center}
+    {\Huge\bfseries Parallel Seam Carving}\\[0.5em]  % Adjust spacing here
+    {\Large\bfseries First Homework Assignment}\\[0.5em]  % Adjust spacing here
+    {\large Luka Maček, Nina Mislej \hspace{0.8em} \normalsize \today}\\[0.3em]  % The date, with NO extra space below it
+  \end{center}
+  \vspace{-1.5em} % Reduce space after title
+}

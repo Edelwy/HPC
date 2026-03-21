@@ -1,0 +1,56 @@
+\documentclass[11pt]{article}
+\input{preamble.tex}
+
+\begin{document}
+\maketitle
+
+Source code for this assignment can be found on \href{https://github.com/laspp/HPC/blob/main/labs/02-Assignment1-OpenMP/Assignment1.md}{GitHub}.
+Our scripts and modified source code can be found in our \href{https://github.com/Edelwy/HPC}{GitHub repository}.
+
+% TODO: Quick summery / link on instructions.
+
+\section{Implementation}
+
+% What was achieved and what not.
+
+\section{Comparing Parallelization Without Optimization}
+
+Template tables:
+\begin{figure}[!hbpt]
+    \begin{minipage}{0.49\textwidth}
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|} \hline
+                \cellcolor{blue!20} & \multicolumn{5}{c|}{\cellcolor{blue!20}\texttt{line 1 template}} \\ \cline{2-6}
+                \cellcolor{blue!20}\texttt{line 2} & 1 & 2 & 4 & 8 & mean \\ \hline
+                2 & 5.542 & 5.542 & 5.542 & 5.542 & 5.542 \\ \hline
+                4 & 3.636 & 2.980 & 2.929 & 2.928 & 3.118 \\ \hline
+                8 & 1.983 & 1.853 & 1.626 & 1.598 & 1.765 \\ \hline
+                16 & 1.842 & 1.099 & 1.015 & 0.955 & 1.228 \\ \hline
+                32 & NaN & 1.033 & 0.798 & 0.734 & 0.855 \\ \hline
+                mean & 3.251 & 2.501 & 2.382 & 2.351 & \\ \hline
+            \end{tabular}
+            \caption{Template table 1}
+        \end{table}
+    \end{minipage}
+    \begin{minipage}{0.49\textwidth}
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|} \hline
+                \cellcolor{blue!20} & \multicolumn{5}{c|}{\cellcolor{blue!20}\texttt{line 1 template}} \\ \cline{2-6}
+                \cellcolor{blue!20}\texttt{line 2} & 1 & 2 & 4 & 8 & mean \\ \hline
+                2 & 0.180 & 0.180 & 0.180 & 0.180 & 0.180 \\ \hline
+                4 & 0.275 & 0.336 & 0.341 & 0.342 & 0.324 \\ \hline
+                8 & 0.504 & 0.540 & 0.615 & 0.626 & 0.571 \\ \hline
+                16 & 0.543 & 0.910 & 0.985 & 1.047 & 0.871 \\ \hline
+                32 & NaN & 0.968 & 1.254 & 1.362 & 1.195 \\ \hline
+                mean & 0.376 & 0.587 & 0.675 & 0.711 & \\ \hline
+            \end{tabular}
+            \caption{Template table 2}
+        \end{table}
+    \end{minipage} 
+\end{figure}
+
+%TODO: report.
+
+\end{document}

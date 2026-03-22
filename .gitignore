@@ -1,4 +1,9 @@
+# Latex:
 **/latex/**
 !**/latex/**/
 !**/latex/*.tex
 !**/latex/*.bib
+
+# VSCode: 
+.vscode
+*.code-workspace

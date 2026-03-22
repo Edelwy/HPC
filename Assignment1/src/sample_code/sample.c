@@ -93,6 +93,11 @@ int main(int argc, char *argv[])
     double stop = omp_get_wtime();
     printf("Time to copy: %f s\n", stop - start);
 
+    float *energy_map = malloc(width * height * sizeof(float));
+    float *M = malloc(width * height * sizeof(float));
+    int *seam = malloc(height * sizeof(int));
+
+
 //int seams=128;
 for(int reps=0; reps<seams; reps++){
 
@@ -120,7 +125,6 @@ for(int reps=0; reps<seams; reps++){
     };
 
     // Step1: sobel
-    float *energy_map = malloc(width * height * sizeof(float));
 
     for (int i = 0; i < width * height; i++) {
         energy_map[i] = 9999999999;	//not zero :)
@@ -167,7 +171,6 @@ for(int reps=0; reps<seams; reps++){
     // STEP 2: seam finding
     start = omp_get_wtime();
 
-    float *M = malloc(width * height * sizeof(float));
     for (int i = 0; i < real_width; i++) {
         M[(height - 1) * width + i] = energy_map[(height - 1) * width + i];
     }
@@ -198,7 +201,6 @@ for(int reps=0; reps<seams; reps++){
 
 
     //STEP 3:
-    int *seam = malloc(height * sizeof(int));
 
     start = omp_get_wtime();
 
@@ -296,6 +298,9 @@ for(int reps=0; reps<seams; reps++){
     // Release the memory
     stbi_image_free(image_in);
     stbi_image_free(image_out);
+    free(energy_map);
+    free(M);
+    free(seam);
 
     return 0;
 }

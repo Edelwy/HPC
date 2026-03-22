@@ -7,3 +7,6 @@
 # VSCode: 
 .vscode
 *.code-workspace
+
+# benchmark
+*.csv

@@ -49,12 +49,17 @@ int main(int argc, char *argv[])
 
     if (argc < 3)
     {
-        printf("USAGE: sample input_image output_image\n");
+        printf("USAGE: sample input_image output_image [seams] \n");
         exit(EXIT_FAILURE);
     }
 
     char image_in_name[MAX_FILENAME];
     char image_out_name[MAX_FILENAME];
+
+    int seams = 128;
+    if(argc == 4){
+        seams = atoi(argv[3]);
+    }
 
     snprintf(image_in_name, MAX_FILENAME, "%s", argv[1]);
     snprintf(image_out_name, MAX_FILENAME, "%s", argv[2]);
@@ -88,7 +93,7 @@ int main(int argc, char *argv[])
     double stop = omp_get_wtime();
     printf("Time to copy: %f s\n", stop - start);
 
-int seams=128;
+//int seams=128;
 for(int reps=0; reps<seams; reps++){
 
     // BEGIN THE MAGIC

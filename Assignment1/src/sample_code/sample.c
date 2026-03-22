@@ -16,6 +16,8 @@
 #define COLOR_CHANNELS 0
 #define MAX_FILENAME 255
 
+#define TOTALTIME
+
 void copy_image(unsigned char *image_out, const unsigned char *image_in, const size_t size)
 {
 
@@ -78,6 +80,9 @@ int main(int argc, char *argv[])
     }
 
     // Copy the input image into output and mesure execution time
+    #ifdef TOTALTIME
+    double total_start = omp_get_wtime();
+    #endif
     double start = omp_get_wtime();
     copy_image(image_out, image_in, datasize);
     double stop = omp_get_wtime();
@@ -255,6 +260,12 @@ for(int reps=0; reps<seams; reps++){
 
     // END OF MAGIC
 }
+
+    #ifdef TOTALTIME
+    double total_stop = omp_get_wtime();
+    printf("Total time: %f s\n", total_stop - total_start);
+    #endif
+
     // Write the output image to file
     char image_out_name_temp[MAX_FILENAME];
     strncpy(image_out_name_temp, image_out_name, MAX_FILENAME);

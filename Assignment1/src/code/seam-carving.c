@@ -79,6 +79,11 @@ int main(int argc, char *argv[])
     if (color_channels == 0)
         color_channels = cpp;
 
+    if(seams >= width) {
+        printf("Seams size too large, fallback on default: %d\n", DEFAULT_SEEMS);
+        seams = DEFAULT_SEEMS;
+    }
+
     // Allocate space for the output image.
     const size_t datasize = width * height * cpp * sizeof(unsigned char);
     unsigned char *image_out = (unsigned char *)malloc(datasize);
@@ -107,7 +112,7 @@ int main(int argc, char *argv[])
 
     // BEGIN THE MAGIC.
     int new_width = width;
-    for(int reps=0; reps<seams; reps++)
+    for(int reps = 0; reps < seams; reps++)
     {
         // Frame around pixel in the X direction.
         int Gx[3][3] = 
@@ -134,7 +139,8 @@ int main(int argc, char *argv[])
                 for (int c = 0; c < color_channels; c++) 
                 {
                     // Looping over the frame.
-                    int gx, gy= 0;
+                    int gx = 0;
+                    int gy = 0;
                     for (int dx = -1; dx <= 1; dx++) 
                     {
                         for (int dy = -1; dy <= 1; dy++) 
@@ -175,6 +181,7 @@ int main(int argc, char *argv[])
             M[(height - 1) * width + i] = energy_map[(height - 1) * width + i];
         }
 
+        // Moving up the image finding minimal adjecent neighbour below.
         for (int j = height - 2; j >= 0; j--) 
         {
             for (int i = 0; i < new_width; i++)
@@ -250,7 +257,6 @@ int main(int argc, char *argv[])
             {
                 for (int c = 0; c < cpp; c++) 
                 {
-
                     int idx  = (j * width + i) * cpp + c;
                     int idx2 = (j * width + (i + 1)) * cpp + c;
                     image_out[idx] = image_out[idx2];
@@ -265,6 +271,7 @@ int main(int argc, char *argv[])
 #endif
     }
     // END OF MAGIC.
+    printf("%d", new_width);
 
 #ifdef TOTALTIME
     double total_stop = omp_get_wtime();

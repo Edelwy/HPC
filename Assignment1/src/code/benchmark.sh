@@ -33,10 +33,10 @@ if [ "$compile" = "1" ]; then
 
 	echo Compiling...
 	echo "File: seam-carving.out (sequential)"
-	gcc -O3 "${source_file}" -o "${methods[0]}.out" -lm -lnuma
+	gcc -O3 --openmp "${source_file}" -o "${methods[0]}.out" -lm -lnuma
 
 	echo "File: seam-carving-omp.out (OpenMP)"
-	gcc -O3 --openmp -DUSE_OMP "${source_file}" -o "${methods[1]}.out" -lm -lnuma
+	gcc -O3 --openmp "${source_file}" -o "${methods[1]}.out" -lm -lnuma -DUSE_OMP
 fi
 
 echo Preparing file...

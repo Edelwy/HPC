@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
         stbi_image_free(image_out);
         exit(EXIT_FAILURE);
     }
-    file_type++; // skip the dot
+    file_type++; // Skip the dot.
 
     if (!strcmp(file_type, "png"))
         stbi_write_png(image_out_name, new_width, height, color_channels, image_out, width * cpp);

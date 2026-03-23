@@ -2,11 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <omp.h>
+#include <time.h>
 #include <sched.h>
 #include <numa.h>
 #include <float.h>
 #include <limits.h>
+#include <omp.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -23,21 +24,29 @@
 
 void copy_image(unsigned char *image_out, const unsigned char *image_in, const size_t size)
 {
+#ifdef USE_OMP
     #pragma omp parallel
+#endif
     {
         // Print thread, CPU, and NUMA node information.
+#ifdef USE_OMP
         #pragma omp single
+#endif
         printf("Using %d threads.\n", omp_get_num_threads());
 
         int tid = omp_get_thread_num();
         int cpu = sched_getcpu();
         int node = numa_node_of_cpu(cpu);
 
+#ifdef USE_OMP
         #pragma omp critical
+#endif
         printf("Thread %d -> CPU %d NUMA %d\n", tid, cpu, node);
 
         // Copy the image data in parallel.
+#ifdef USE_OMP
         #pragma omp for
+#endif
         for (size_t i = 0; i < size; ++i)
         {
             image_out[i] = image_in[i];
@@ -131,6 +140,9 @@ int main(int argc, char *argv[])
 
         // Energy map calculation per channel and then using the average as the value.
         start = omp_get_wtime();
+#ifdef USE_OMP
+        #pragma omp parallel for collapse(2) schedule(static)
+#endif
         for (int i = 0; i < new_width; i++) 
         {
             for (int j = 0; j < height; j++) 
@@ -174,6 +186,9 @@ int main(int argc, char *argv[])
 
         // Now we find the seams.
         start = omp_get_wtime();
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
         for (int i = 0; i < new_width; i++) 
         {
             // Use the the cumulative energy matrix used for dynamic programming.
@@ -250,6 +265,9 @@ int main(int argc, char *argv[])
         }
 
         // Delete the seam from the image.
+#ifdef USE_OMP
+        #pragma omp parallel for schedule(static)
+#endif
         for (int j = 0; j < height; j++) 
         {
             int col = seam[j];
@@ -271,8 +289,6 @@ int main(int argc, char *argv[])
 #endif
     }
     // END OF MAGIC.
-    printf("%d", new_width);
-
 #ifdef TOTALTIME
     double total_stop = omp_get_wtime();
     printf("Total time: %f s\n", total_stop - total_start);
@@ -309,3 +325,4 @@ int main(int argc, char *argv[])
     stbi_image_free(image_out);
     return 0;
 }
+

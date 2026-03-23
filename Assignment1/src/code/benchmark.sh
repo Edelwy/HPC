@@ -11,7 +11,8 @@ export OMP_PLACES=cores
 export OMP_PROC_BIND=close
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK 
 
-progs=( seam-carving seam-carving-omp )
+methods=( seam-carving seam-carving-omp )
+source_file=seam-carving.c
 infiles=../test_images
 outfile=results.csv
 repeats=5
@@ -31,10 +32,11 @@ if [ "$compile" = "1" ]; then
 	module load numactl
 
 	echo Compiling...
-	for file in "${progs[@]}"; do
-		echo "File: ${file}"
-		gcc -O3 --openmp "${file}.c" -o "${file}.out" -lm -lnuma
-	done
+	echo "File: seam-carving.out (sequential)"
+	gcc -O3 "${source_file}" -o "${methods[0]}.out" -lm -lnuma
+
+	echo "File: seam-carving-omp.out (OpenMP)"
+	gcc -O3 --openmp -DUSE_OMP "${source_file}" -o "${methods[1]}.out" -lm -lnuma
 fi
 
 echo Preparing file...
@@ -42,7 +44,7 @@ echo "Method","Attempt","Image","Time"\;>${outfile}
 
 
 echo Testing...
-for method in ${progs[@]}; do
+for method in ${methods[@]}; do
 	for file in $(find $infiles -type f); do
 		for ((attempt=0; attempt<${repeats}; attempt++)); do
 			echo Running test attempt $attempt with method ${method} on file ${file##*/}

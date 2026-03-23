@@ -199,6 +199,9 @@ int main(int argc, char *argv[])
         // Moving up the image finding minimal adjecent neighbour below.
         for (int j = height - 2; j >= 0; j--) 
         {
+#ifdef USE_OMP
+            #pragma omp parallel for schedule(static)
+#endif
             for (int i = 0; i < new_width; i++)
             {
                 float down_left  = (i > 0) ? M[(j + 1) * width + (i - 1)] : FLT_MAX;

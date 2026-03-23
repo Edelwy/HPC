@@ -2,7 +2,7 @@
 #SBATCH --reservation=fri
 #SBATCH --job-name=seam_carving
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=32
 #SBATCH --output=seam_carving.log
 #SBATCH --hint=nomultithread
 
@@ -11,10 +11,10 @@ export OMP_PLACES=cores
 export OMP_PROC_BIND=close
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK 
 
-methods=( seam-carving seam-carving-omp )
+methods=( seam-carving seam-carving-omp seam-carving-omp-opt )
 source_file=seam-carving.c
 infiles=../test_images
-outfile=results.csv
+outfile="$1".csv
 repeats=5
 seams=128
 
@@ -32,11 +32,14 @@ if [ "$compile" = "1" ]; then
 	module load numactl
 
 	echo Compiling...
-	echo "File: seam-carving.out (sequential)"
-	gcc -O3 --openmp "${source_file}" -o "${methods[0]}.out" -lm -lnuma
+	echo "File: ${methods[0]}.out (sequential)"
+	gcc -O3 --openmp "${source_file}" -o "${methods[0]}.out" -lm -lnuma -DSTATS
 
-	echo "File: seam-carving-omp.out (OpenMP)"
-	gcc -O3 --openmp "${source_file}" -o "${methods[1]}.out" -lm -lnuma -DUSE_OMP
+	echo "File: ${methods[1]}.out (OpenMP)"
+	gcc -O3 --openmp "${source_file}" -o "${methods[1]}.out" -lm -lnuma -DSTATS -DUSE_OMP
+
+	echo "File: ${methods[2]}.out (OpenMP + optimization)"
+	gcc -O3 --openmp "${source_file}" -o "${methods[2]}.out" -lm -lnuma  -DSTATS -DUSE_OMP_OPTIMIZED
 fi
 
 echo Preparing file...

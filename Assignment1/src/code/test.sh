@@ -22,7 +22,9 @@ if [ "$compile" = "1" ]; then
 	# Compile for debugging:
 	#gcc -g -O0 --openmp "${prog}.c" -o "${prog}.out" -lm -lnuma
 	# Compile parallel:
-	gcc -O3 --openmp "${prog}.c" -o "${prog}.out" -lm -lnuma -DUSE_OMP
+	#gcc -O3 --openmp "${prog}.c" -o "${prog}.out" -lm -lnuma -DUSE_OMP -DSTATS
+	# Compile parallel optimized:
+	gcc -O3 --openmp "${prog}.c" -o "${prog}.out" -lm -lnuma -DUSE_OMP_OPTIMIZED
 fi
 
 echo Testing...

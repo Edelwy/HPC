@@ -8,5 +8,10 @@
 .vscode
 *.code-workspace
 
-# benchmark
+# Benchmark:
 *.csv
+
+# Compiled binaries:
+*.out
+*.exe
+*.o

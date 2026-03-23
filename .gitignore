@@ -10,6 +10,7 @@
 
 # Benchmark:
 *.csv
+*.log
 
 # Compiled binaries:
 *.out

@@ -2,7 +2,7 @@
 
 prog=$1
 image=$2
-seams=128
+seams=$3
 
 compile=0
 
@@ -17,10 +17,12 @@ if [ "$compile" = "1" ]; then
 	# Load the numactl module to enable numa library linking.
 	module load numactl
 	echo Compiling...
-	gcc -O3 --openmp "${prog}.c" -o "${prog}.out" -lm -lnuma
+	#gcc -O3 --openmp "${prog}.c" -o "${prog}.out" -lm -lnuma
+	# Compile for debugging
+	gcc -g -O0 --openmp "${prog}.c" -o "${prog}.out" -lm -lnuma
 fi
 
 echo Testing...
-srun  "${prog}.out" "${image}" ./test.png
+srun  "${prog}.out" "${image}" ../test_images/test.png "${seams}"
 
 

@@ -2,13 +2,13 @@
 #SBATCH --reservation=fri
 #SBATCH --job-name=seam_carving_opt
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=16
 #SBATCH --output=seam_carving_opt.log
 #SBATCH --hint=nomultithread
 
 export OMP_PLACES=cores
 export OMP_PROC_BIND=close
-export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-32}"
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-16}"
 
 source_file=seam-carving.c
 infiles=../test_images

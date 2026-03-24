@@ -16,9 +16,9 @@ outfile="$1".csv
 repeats=1
 seams=128
 
-energy_constants=(100 500 1000 5000)
-dp_constants=(100 500 1000 5000)
-removal_constants=(100 500 1000 5000)
+energy_constants=(200000 100000 50000 20000 10000)
+dp_constants=(1000)
+removal_constants=(1)
 
 compile=0
 for arg in "$@"; do

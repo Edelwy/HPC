@@ -24,18 +24,18 @@
 #define MAX_FILENAME 255
 
 // Marcros for default values.
-#define DEFAULT_SEEMS 180
+#define DEFAULT_SEEMS 128
 #define TOTALTIME
 
 #ifdef USE_DYNAMIC_THREADS
 #ifndef THREADS_ENERGY_CONSTANT
-#define THREADS_ENERGY_CONSTANT 5000
+#define THREADS_ENERGY_CONSTANT 500
 #endif
 #ifndef THREADS_DP_CONSTANT
 #define THREADS_DP_CONSTANT 1000
 #endif
 #ifndef THREADS_REMOVAL_CONSTANT
-#define THREADS_REMOVAL_CONSTANT 500
+#define THREADS_REMOVAL_CONSTANT 100
 #endif
 
 static int omp_threads_energy(int max_threads, int width, int height)
@@ -44,14 +44,12 @@ static int omp_threads_energy(int max_threads, int width, int height)
     int threads = work / THREADS_ENERGY_CONSTANT;
     if (threads > max_threads) threads = max_threads;
     if (threads < 1) threads = 1;
-
     return threads;
 }
 
 static int omp_threads_dp(int max_threads, int width)
 {
     int threads = width / THREADS_DP_CONSTANT;
-    if (threads < 1) threads = 1;
     if (threads > max_threads / 2) threads = max_threads / 2;
     if (threads < 1) threads = 1;
     return threads;
@@ -60,8 +58,7 @@ static int omp_threads_dp(int max_threads, int width)
 static int omp_threads_removal(int max_threads, int height)
 {
     int threads = height / THREADS_REMOVAL_CONSTANT;
-    if (threads > max_threads / 2)
-        threads = max_threads / 2;
+    if (threads > max_threads) threads = max_threads;
     if (threads < 1) threads = 1;
     return threads;
 }

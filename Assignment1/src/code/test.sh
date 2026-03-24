@@ -1,5 +1,9 @@
 #!/bin/bash
 
+export OMP_PLACES=cores
+export OMP_PROC_BIND=close
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-32}"
+
 prog=$1
 image=$2
 seams=$3
@@ -24,7 +28,7 @@ if [ "$compile" = "1" ]; then
 	# Compile parallel:
 	#gcc -O3 --openmp "${prog}.c" -o "${prog}.out" -lm -lnuma -DUSE_OMP -DSTATS
 	# Compile parallel optimized:
-	gcc -O3 --openmp "${prog}.c" -o "${prog}.out" -lm -lnuma -DUSE_OMP_OPTIMIZED
+	gcc -O3 --openmp "${prog}.c" -o "${prog}.out" -lm -lnuma -DUSE_DYNAMIC_THREADS
 fi
 
 echo Testing...

@@ -11,7 +11,27 @@ Our scripts and modified source code can be found in our \href{https://github.co
 
 The baseline parallel version uses \href{https://www.openmp.org/wp-content/uploads/OpenMP-4.0-C.pdf}{\textbf{OpenMP}} library and can be enabled via \texttt{USE\_OMP} macro. This includes parallization per pixel in the energy calculation, parallelization per row in seam identification and parallelization in pixel removal per seam partitions which are dependant on height.  
 
-%TODO 
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.3\textwidth}
+        \includegraphics[width=0.8\textwidth]{../media/1.png}
+    \end{minipage}
+    \begin{minipage}{0.3\textwidth}
+        \includegraphics[width=0.8\textwidth]{../media/2.png}
+    \end{minipage}
+    \begin{minipage}{0.38\textwidth}
+        \includegraphics[width=0.8\textwidth]{../media/3.png}
+    \end{minipage}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.45\textwidth}
+        \includegraphics[width=0.8\textwidth]{../media/4.png}
+    \end{minipage}
+    \begin{minipage}{0.45\textwidth}
+        \includegraphics[width=0.8\textwidth]{../media/5.png}
+    \end{minipage}
+\end{figure}
 
 An \textbf{optimization} is supported via \texttt{USE\_DYNAMIC\_THREADS} macro, which keeps the same pragmas but sets \textbf{different number of threads} at the boundaries between phases so each stage can use a different size. The heuristic dynamically selects the number of threads based on the amount of available work in each phase of the algorithm. For the energy computation, the thread count scales with the total workload divided by a tuning constant \texttt{THREADS\_ENERGY\_CONSTANT (C1)}, allowing utilization of cores for large images while avoiding excessive overhead for small ones.The thread count for the dynamic programming phase is derived from the width and \texttt{THREADS\_DP\_CONSTANT (C2)} and capped at half of the available threads to reduce synchronization overhead. Similarly, the seam removal phase is memory-bound and parallelized across image rows, so its thread count is based on the image height and \texttt{THREADS\_REMOVAL\_CONSTANT (C3)} and also conservatively limited to prevent contention for memory bandwidth. The constants were set to different valaues and tested to find the right balance as can be seen in results.
 

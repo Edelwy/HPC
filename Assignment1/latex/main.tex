@@ -5,52 +5,96 @@
 \maketitle
 
 Source code for this assignment can be found on \href{https://github.com/laspp/HPC/blob/main/labs/02-Assignment1-OpenMP/Assignment1.md}{GitHub}.
-Our scripts and modified source code can be found in our \href{https://github.com/Edelwy/HPC}{GitHub repository}.
-
-% TODO: Quick summery / link on instructions.
+Our scripts and modified source code can be found in our \href{https://github.com/Edelwy/HPC}{\textbf{GitHub} repository}. \href{https://en.wikipedia.org/wiki/Seam_carving}{\textbf{Seam carving}} resizes an image by repeatedly finding a low-energy vertical seam, removing one pixel per row, and shifting the remaining pixels. Each outer iteration applies three phases in order: we compute a the Sobel energy map, find the cheapest seam by dynamic programming and trace the cheapest seam from the top row down.
 
 \section{Implementation}
 
-% What was achieved and what not.
+The baseline parallel version uses \href{https://www.openmp.org/wp-content/uploads/OpenMP-4.0-C.pdf}{\textbf{OpenMP}} library and can be enabled via \texttt{USE\_OMP} macro. This includes parallization per pixel in the energy calculation, parallelization per row in seam identification and parallelization in pixel removal per seam partitions which are dependant on height. The use of include guards for this library allows us to truly see the difference between parallelized and sequential program that uses no library overhead. 
+
+An \textbf{optimization} is supported via \texttt{USE\_DYNAMIC\_THREADS} macro, which keeps the same pragmas but sets \textbf{different number of threads} at the boundaries between phases so each stage can use a different size. The heuristic dynamically selects the number of threads based on the amount of available work in each phase of the algorithm. For the energy computation, the thread count scales with the total workload divided by a tuning constant \texttt{THREADS\_ENERGY\_CONSTANT}, allowing utilization of cores for large images while avoiding excessive overhead for small ones.The thread count for the dynamic programming phase is derived from the width and \texttt{THREADS\_DP\_CONSTANT} and capped at half of the available threads to reduce synchronization overhead. Similarly, the seam removal phase is memory-bound and parallelized across image rows, so its thread count is based on the image height and \texttt{THREADS\_REMOVAL\_CONSTANT} and also conservatively limited to prevent contention for memory bandwidth. The constants were set to different valaues and tested to find the right balance as can be seen in results.
+
+We also implemented \textbf{greedy seam removal} which removes multiple seams without calculating the energy for each removal and compared the results by looking at speed up and picture quality. In order to achieve further paralelization we divided the picture into blocks where width is divided by the number of threads in use. The path finding is limited to the block so that these can be done in parallel independently. This is supported via \texttt{USE\_GREEDY\_REMOVAL} macro.
 
 \section{Comparing Parallelization Without Optimization}
 
-Template tables:
+The following table lists the average total time used for the sequential and parallel algorithm implementation over 5 repetitions and run on different number of threads. One thread data is included in order to test library overhead when comparing to pure sequential implementation.
+
 \begin{figure}[!hbpt]
-    \begin{minipage}{0.49\textwidth}
+    \begin{minipage}{\textwidth}
         \begin{table}[H]
             \centering
-            \begin{tabular}{|c|c|c|c|c|c|} \hline
-                \cellcolor{blue!20} & \multicolumn{5}{c|}{\cellcolor{blue!20}\texttt{line 1 template}} \\ \cline{2-6}
-                \cellcolor{blue!20}\texttt{line 2} & 1 & 2 & 4 & 8 & mean \\ \hline
-                2 & 5.542 & 5.542 & 5.542 & 5.542 & 5.542 \\ \hline
-                4 & 3.636 & 2.980 & 2.929 & 2.928 & 3.118 \\ \hline
-                8 & 1.983 & 1.853 & 1.626 & 1.598 & 1.765 \\ \hline
-                16 & 1.842 & 1.099 & 1.015 & 0.955 & 1.228 \\ \hline
-                32 & NaN & 1.033 & 0.798 & 0.734 & 0.855 \\ \hline
-                mean & 3.251 & 2.501 & 2.382 & 2.351 & \\ \hline
+            \begin{tabular}{|l|*{7}{p{1cm}|}} \hline
+                \cellcolor{blue!20}\textbf{image / threads} & \cellcolor{blue!20}\texttt{seq.} & \cellcolor{blue!20}\texttt{1} & \cellcolor{blue!20}\texttt{2} & \cellcolor{blue!20}\texttt{4} & \cellcolor{blue!20}\texttt{8} & \cellcolor{blue!20}\texttt{16} & \cellcolor{blue!20}\texttt{32} \\ \hline
+                \texttt{720$\times$480}  & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
+                \texttt{1024$\times$768} & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
+                \texttt{1920$\times$1200}& 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
+                \texttt{3840$\times$2160}& 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
+                \texttt{7680$\times$4320}& 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
             \end{tabular}
-            \caption{Template table 1}
+            \caption{Average total time for different implementations (placeholder).}
         \end{table}
     \end{minipage}
-    \begin{minipage}{0.49\textwidth}
-        \begin{table}[H]
-            \centering
-            \begin{tabular}{|c|c|c|c|c|c|} \hline
-                \cellcolor{blue!20} & \multicolumn{5}{c|}{\cellcolor{blue!20}\texttt{line 1 template}} \\ \cline{2-6}
-                \cellcolor{blue!20}\texttt{line 2} & 1 & 2 & 4 & 8 & mean \\ \hline
-                2 & 0.180 & 0.180 & 0.180 & 0.180 & 0.180 \\ \hline
-                4 & 0.275 & 0.336 & 0.341 & 0.342 & 0.324 \\ \hline
-                8 & 0.504 & 0.540 & 0.615 & 0.626 & 0.571 \\ \hline
-                16 & 0.543 & 0.910 & 0.985 & 1.047 & 0.871 \\ \hline
-                32 & NaN & 0.968 & 1.254 & 1.362 & 1.195 \\ \hline
-                mean & 0.376 & 0.587 & 0.675 & 0.711 & \\ \hline
-            \end{tabular}
-            \caption{Template table 2}
-        \end{table}
-    \end{minipage} 
 \end{figure}
 
-%TODO: report.
+Calculating the speed-up...
+
+\section{Dynamic Thread Optimization}
+
+We ran the algorithm using only one repetition allowing 32 threads, however setting each of the constants to different values. The best and the worst results can be seen in tables below.
+
+\begin{figure}[!hbpt]
+    \center
+    \begin{minipage}{0.4\textwidth}
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|l|*{1}{p{1cm}|}} \hline
+                \cellcolor{blue!20}\textbf{image} & \cellcolor{blue!20}\texttt{time} \\ \hline
+                \texttt{720$\times$480}  & 0 \\ \hline
+                \texttt{1024$\times$768} & 0 \\ \hline
+                \texttt{1920$\times$1200}& 0 \\ \hline
+                \texttt{3840$\times$2160}& 0 \\ \hline
+                \texttt{7680$\times$4320}& 0 \\ \hline
+            \end{tabular}
+            \caption{Total time for the best heuristic (placeholder).}
+        \end{table}
+    \end{minipage}
+    \begin{minipage}{0.4\textwidth}
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|l|*{1}{p{1cm}|}} \hline
+                \cellcolor{blue!20}\textbf{image} & \cellcolor{blue!20}\texttt{time} \\ \hline
+                \texttt{720$\times$480}  & 0 \\ \hline
+                \texttt{1024$\times$768} & 0 \\ \hline
+                \texttt{1920$\times$1200}& 0 \\ \hline
+                \texttt{3840$\times$2160}& 0 \\ \hline
+                \texttt{7680$\times$4320}& 0 \\ \hline
+            \end{tabular}
+            \caption{Total time for the worst heuristic (placeholder).}
+        \end{table}
+    \end{minipage}
+\end{figure}
+
+Explain...
+
+\section{Greedy Seam Removal}
+
+We ran the algorithm using different number of threads as seen in the first section however this also conditions the number of seams removed in one batch. Below are the times and the pictures obtained.
+
+\begin{figure}[!hbpt]
+    \begin{minipage}{\textwidth}
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|l|*{5}{p{1cm}|}} \hline
+                \cellcolor{blue!20}\textbf{image / threads} & \cellcolor{blue!20}\texttt{2} & \cellcolor{blue!20}\texttt{4} & \cellcolor{blue!20}\texttt{8} & \cellcolor{blue!20}\texttt{16} & \cellcolor{blue!20}\texttt{32} \\ \hline
+                \texttt{720$\times$480}  & 0 & 0 & 0 & 0 & 0 \\ \hline
+                \texttt{1024$\times$768} & 0 & 0 & 0 & 0 & 0 \\ \hline
+                \texttt{1920$\times$1200}& 0 & 0 & 0 & 0 & 0 \\ \hline
+                \texttt{3840$\times$2160}& 0 & 0 & 0 & 0 & 0 \\ \hline
+                \texttt{7680$\times$4320}& 0 & 0 & 0 & 0 & 0 \\ \hline
+            \end{tabular}
+            \caption{Average total time for different implementations (placeholder).}
+        \end{table}
+    \end{minipage}
+\end{figure}
 
 \end{document}

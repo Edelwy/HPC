@@ -28,9 +28,15 @@
 #define TOTALTIME
 
 #ifdef USE_OMP_OPTIMIZED
-#define THREADS_ENERGY_CONSTANT   20000
-#define THREADS_DP_CONSTANT       2000
-#define THREADS_REMOVAL_CONSTANT  2000
+#ifndef THREADS_ENERGY_CONSTANT
+#define THREADS_ENERGY_CONSTANT 5000
+#endif
+#ifndef THREADS_DP_CONSTANT
+#define THREADS_DP_CONSTANT 1000
+#endif
+#ifndef THREADS_REMOVAL_CONSTANT
+#define THREADS_REMOVAL_CONSTANT 500
+#endif
 
 static int omp_threads_energy(int max_threads, int width, int height)
 {

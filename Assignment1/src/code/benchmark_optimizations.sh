@@ -8,40 +8,68 @@
 
 export OMP_PLACES=cores
 export OMP_PROC_BIND=close
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-32}"
 
 source_file=seam-carving.c
-binary=seam-carving-omp-opt.out
 infiles=../test_images
-outfile="$1".csv
-repeats=5
+outfile=results_optimized.csv
+repeats=1
 seams=128
-thread_counts=(1 2 4 8 16 32)
+
+energy_constants=(100 500 1000 5000)
+dp_constants=(100 500 1000 5000)
+removal_constants=(100 500 1000 5000)
 
 compile=0
 for arg in "$@"; do
 	[ "$arg" = "--compile" ] && compile=1
 done
 
+build_one() {
+	local e="$1" d="$2" r="$3"
+	local out="seam-carving-omp-opt_e${e}_dp${d}_r${r}.out"
+	gcc -O3 --openmp \
+		-DUSE_OMP_OPTIMIZED \
+		-DTHREADS_ENERGY_CONSTANT="${e}" \
+		-DTHREADS_DP_CONSTANT="${d}" \
+		-DTHREADS_REMOVAL_CONSTANT="${r}" \
+		"${source_file}" -o "${out}" -lm -lnuma
+}
+
 if [ "$compile" = "1" ]; then
 	module load numactl
-	gcc -O3 --openmp -DUSE_OMP_OPTIMIZED "${source_file}" -o "${binary}" -lm -lnuma
+	for e in "${energy_constants[@]}"; do
+		for d in "${dp_constants[@]}"; do
+			for r in "${removal_constants[@]}"; do
+				echo "Building e=${e} dp=${d} r=${r}"
+				build_one "${e}" "${d}" "${r}"
+			done
+		done
+	done
 fi
 
-echo '"Method","Threads","Attempt","Image","Time"' > "${outfile}"
+threads="${OMP_NUM_THREADS}"
+echo '"Method","E_const","DP_const","R_const","Threads","Attempt","Image","Time"' > "${outfile}"
 
 method=seam-carving-omp-opt
-cpus_cap="${SLURM_CPUS_PER_TASK:-}"
 
-for threads in "${thread_counts[@]}"; do
-	[ -n "${cpus_cap}" ] && [ "${threads}" -gt "${cpus_cap}" ] && continue
-	export OMP_NUM_THREADS="${threads}"
+for e in "${energy_constants[@]}"; do
+	for d in "${dp_constants[@]}"; do
+		for r in "${removal_constants[@]}"; do
+			binary="seam-carving-omp-opt_e${e}_dp${d}_r${r}.out"
+			[ -f "${binary}" ] || {
+				echo "Missing ${binary} — run with --compile first" >&2
+				exit 1
+			}
 
-	for file in $(find "${infiles}" -type f); do
-		for ((attempt = 0; attempt < repeats; attempt++)); do
-			echo -n "${method},${threads},${attempt},${file##*/}," >> "${outfile}"
-			out=$(./"${binary}" "${file}" "${file}-out" ${seams} | grep "Total time:")
-			echo "${out}"
-			echo "${out##Total time:}" >> "${outfile}"
+			for file in $(find "${infiles}" -type f); do
+				for ((attempt = 0; attempt < repeats; attempt++)); do
+					echo -n "${method},${e},${d},${r},${threads},${attempt},${file##*/}," >> "${outfile}"
+					out=$(./"${binary}" "${file}" "${file}-out" ${seams} | grep "Total time:")
+					echo "${out}"
+					echo "${out##Total time:}" >> "${outfile}"
+				done
+			done
 		done
 	done
 done

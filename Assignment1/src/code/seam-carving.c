@@ -10,7 +10,7 @@
 #include <omp.h>
 
 
-#ifdef USE_OMP_OPTIMIZED
+#ifdef USE_DYNAMIC_THREADS
 #define USE_OMP
 #endif
 
@@ -27,7 +27,7 @@
 #define DEFAULT_SEEMS 180
 #define TOTALTIME
 
-#ifdef USE_OMP_OPTIMIZED
+#ifdef USE_DYNAMIC_THREADS
 #ifndef THREADS_ENERGY_CONSTANT
 #define THREADS_ENERGY_CONSTANT 5000
 #endif
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
     int *seam = malloc(height * sizeof(int));
 
 // Set the upper bound of threads for the OpenMP optimization.
-#ifdef USE_OMP_OPTIMIZED
+#ifdef USE_DYNAMIC_THREADS
     int max_threads = omp_get_max_threads();
 #endif
 
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
     int new_width = width;
     for(int reps = 0; reps < seams; reps++)
     {
-#ifdef USE_OMP_OPTIMIZED
+#ifdef USE_DYNAMIC_THREADS
         int t_energy = omp_threads_energy(max_threads, new_width, height);
         int t_dp = omp_threads_dp(max_threads, new_width);
         int t_removal = omp_threads_removal(max_threads, height);
@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
 
         // Energy map calculation per channel and then using the average as the value.
         start = omp_get_wtime();
-#ifdef USE_OMP_OPTIMIZED
+#ifdef USE_DYNAMIC_THREADS
         omp_set_num_threads(t_energy);
 #endif
 #ifdef USE_OMP
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 
         // Now we find the seams.
         start = omp_get_wtime();
-#ifdef USE_OMP_OPTIMIZED
+#ifdef USE_DYNAMIC_THREADS
         omp_set_num_threads(t_dp);
 #endif
 #ifdef USE_OMP
@@ -330,7 +330,7 @@ int main(int argc, char *argv[])
         }
 
         // Delete the seam from the image.
-#ifdef USE_OMP_OPTIMIZED
+#ifdef USE_DYNAMIC_THREADS
         omp_set_num_threads(t_removal);
 #endif
 #ifdef USE_OMP

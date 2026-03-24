@@ -29,7 +29,7 @@ build_one() {
 	local e="$1" d="$2" r="$3"
 	local out="seam-carving-omp-opt_e${e}_dp${d}_r${r}.out"
 	gcc -O3 --openmp \
-		-DUSE_OMP_OPTIMIZED \
+		-DUSE_DYNAMIC_THREADS \
 		-DTHREADS_ENERGY_CONSTANT="${e}" \
 		-DTHREADS_DP_CONSTANT="${d}" \
 		-DTHREADS_REMOVAL_CONSTANT="${r}" \

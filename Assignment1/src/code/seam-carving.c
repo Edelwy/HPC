@@ -9,6 +9,7 @@
 #include <limits.h>
 #include <omp.h>
 
+#define GREEDY 4
 
 #ifdef USE_DYNAMIC_THREADS
 #define USE_OMP
@@ -38,6 +39,7 @@
 #define THREADS_REMOVAL_CONSTANT 100
 #endif
 
+
 static int omp_threads_energy(int max_threads, int width, int height)
 {
     int work = width * height;
@@ -63,6 +65,14 @@ static int omp_threads_removal(int max_threads, int height)
     return threads;
 }
 #endif
+
+
+#ifdef GREEDY
+int comp(const void *a, const void *b) {
+    return (*(int *)a - *(int *)b);
+}
+#endif
+
 
 void copy_image(unsigned char *image_out, const unsigned char *image_in, const size_t size)
 {
@@ -159,7 +169,12 @@ int main(int argc, char *argv[])
     // Allocate memory for the energy map, cumulative energy matrix, and seams.
     float *energy_map = malloc(width * height * sizeof(float));
     float *M = malloc(width * height * sizeof(float));
+
+#ifndef GREEDY
     int *seam = malloc(height * sizeof(int));
+#else
+    int *seams_greedy = malloc(height * sizeof(int) * GREEDY);		//different name to avoid confusion
+#endif
 
 // Set the upper bound of threads for the OpenMP optimization.
 #ifdef USE_DYNAMIC_THREADS
@@ -168,8 +183,14 @@ int main(int argc, char *argv[])
 
     // BEGIN THE MAGIC.
     int new_width = width;
+
+#ifdef GREEDY
+    for(int reps = 0; reps < seams; reps+=GREEDY)
+#else
     for(int reps = 0; reps < seams; reps++)
+#endif
     {
+
 #ifdef USE_DYNAMIC_THREADS
         int t_energy = omp_threads_energy(max_threads, new_width, height);
         int t_dp = omp_threads_dp(max_threads, new_width);
@@ -279,6 +300,11 @@ int main(int argc, char *argv[])
         printf("Dynamic seam finding took: %f s\n", stop - start);
 #endif
 
+#ifdef GREEDY
+        for(int gseam = 0; gseam<GREEDY; gseam++){
+            int *seam = seams_greedy+(height * gseam);
+#endif
+
         // Now we remove the minimal value seams based on the number of seams.
         start = omp_get_wtime();
         int min_col = 0;
@@ -293,7 +319,6 @@ int main(int argc, char *argv[])
                 min_col = i;
             }
         }
-
         // Find the path down and save the seam into seams array.
         seam[0] = min_col;
         for (int j = 1; j < height; j++)
@@ -324,7 +349,25 @@ int main(int argc, char *argv[])
                 }
             }
             seam[j] = best_col;
+
+
+
+
+
+
+
+for (int j = 0; j < height; j++) {
+    int col = seam[j];
+    M[j * width + col] = FLT_MAX;
+}
+
+
+
+
+
+
         }
+
 
         // Delete the seam from the image.
 #ifdef USE_DYNAMIC_THREADS
@@ -333,9 +376,44 @@ int main(int argc, char *argv[])
 #ifdef USE_OMP
         #pragma omp parallel for schedule(static)
 #endif
+
+#ifdef GREEDY
+for (int j = 0; j < height; j++) {
+
+    int cols[GREEDY];
+
+    for (int k = 0; k < GREEDY; k++) {
+//        cols[k] = seams_greedy[k * height + j];
+        cols[k] = seams_greedy[j];
+    }
+
+    qsort(cols, GREEDY, sizeof(int), comp);
+
+    int shift = 0;
+
+    for (int i = 0; i < new_width; i++) {
+
+        if (shift < GREEDY && i == cols[shift]) {
+            shift++;
+        }
+
+        for (int c = 0; c < cpp; c++) {
+            int src = (j * width + i) * cpp + c;
+
+            if (i - shift >= 0) {
+                int dst = (j * width + (i - shift)) * cpp + c;
+                image_out[dst] = image_out[src];
+            }
+        }
+    }
+}
+#else
         for (int j = 0; j < height; j++) 
         {
+
             int col = seam[j];
+
+
             for (int i = col; i < new_width - 1; i++) 
             {
                 for (int c = 0; c < cpp; c++) 
@@ -345,9 +423,26 @@ int main(int argc, char *argv[])
                     image_out[idx] = image_out[idx2];
                 }
             }
-        }
 
+
+        }
+#endif
+
+
+
+
+#ifdef GREEDY
+        }		// I know....
+#endif
+
+#ifndef GREEDY
         new_width--;
+#else
+//        new_width--;
+        new_width -= GREEDY;
+#endif
+
+
         stop = omp_get_wtime();
 #ifdef STATS
         printf("Seam finding and deletion took: %f s\n", stop - start);
@@ -385,7 +480,11 @@ int main(int argc, char *argv[])
     // Release the memory.
     free(energy_map);
     free(M);
+#ifndef GREEDY
     free(seam);
+#else
+    free(seams_greedy);
+#endif
     stbi_image_free(image_in);
     stbi_image_free(image_out);
     return 0;

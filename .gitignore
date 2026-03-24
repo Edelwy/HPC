@@ -1,16 +1,17 @@
+# Benchmark:
+*.csv
+*.log
+
 # Latex:
 **/latex/**
 !**/latex/**/
 !**/latex/*.tex
 !**/latex/*.bib
+!**/latex/*.csv
 
 # VSCode: 
 .vscode
 *.code-workspace
-
-# Benchmark:
-*.csv
-*.log
 
 # Compiled binaries:
 *.out

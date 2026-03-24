@@ -8,6 +8,7 @@
 !**/latex/*.tex
 !**/latex/*.bib
 !**/latex/*.csv
+!**/latex/*.ipynb
 
 # VSCode: 
 .vscode

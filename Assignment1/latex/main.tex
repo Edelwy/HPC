@@ -23,13 +23,13 @@ The following table lists the average total time used for the sequential and par
     \begin{minipage}{\textwidth}
         \begin{table}[H]
             \centering
-            \begin{tabular}{|l|*{7}{p{1cm}|}} \hline
-                \cellcolor{blue!20}\textbf{image / threads} & \cellcolor{blue!20}\texttt{seq.} & \cellcolor{blue!20}\texttt{1} & \cellcolor{blue!20}\texttt{2} & \cellcolor{blue!20}\texttt{4} & \cellcolor{blue!20}\texttt{8} & \cellcolor{blue!20}\texttt{16} & \cellcolor{blue!20}\texttt{32} \\ \hline
-                \texttt{720$\times$480}  & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
-                \texttt{1024$\times$768} & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
-                \texttt{1920$\times$1200}& 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
-                \texttt{3840$\times$2160}& 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
-                \texttt{7680$\times$4320}& 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ \hline
+            \begin{tabular}{|l|*{7}{p{1.25cm}|}} \hline
+                \cellcolor{blue!20}\textbf{image / threads} & \cellcolor{blue!20}\texttt{seq.} & \cellcolor{blue!20}\texttt{1} & \cellcolor{blue!20}\texttt{2} & \cellcolor{blue!20}\texttt{4} & \cellcolor{blue!20}\texttt{8} & \cellcolor{blue!20}\texttt{16} \\ \hline
+                \texttt{720$\times$480} & 0.673 & \cellcolor{red!20}1.284 & 0.68 & 0.379 & \cellcolor{green!20}0.311 & 0.348  \\ \hline
+                \texttt{1024$\times$768} & 1.627 & \cellcolor{red!20}2.975 & 1.551 & 0.833 & \cellcolor{green!20}0.626 & 0.628   \\ \hline
+                \texttt{1920$\times$1200} & 4.65 & \cellcolor{red!20}8.796 & 4.499 & 2.362 & 1.513 & \cellcolor{green!20}1.224   \\ \hline
+                \texttt{3840$\times$2160} & 21.556 & \cellcolor{red!20}36.28 & 18.509 & 9.594 & 5.533 & \cellcolor{green!20}3.732   \\ \hline
+                \texttt{7680$\times$4320} & 92.397 & \cellcolor{red!20}156.381 & 78.988 & 40.655 & 22.315 & \cellcolor{green!20}13.553  \\ \hline
             \end{tabular}
             \caption{Average total time for different implementations (placeholder).}
         \end{table}

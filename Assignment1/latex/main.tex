@@ -36,13 +36,13 @@ The baseline parallel version uses \href{https://www.openmp.org/wp-content/uploa
     \end{minipage}
 \end{figure}
 
-An \textbf{optimization} is supported via \texttt{USE\_DYNAMIC\_THREADS} macro, which keeps the same pragmas but sets \textbf{different number of threads} at the boundaries between phases so each stage can use a different size. The heuristic dynamically selects the number of threads based on the amount of available work in each phase of the algorithm. For the energy computation, the thread count scales with the total workload divided by a tuning constant \texttt{THREADS\_ENERGY\_CONSTANT (C1)}, allowing utilization of cores for large images while avoiding excessive overhead for small ones.The thread count for the dynamic programming phase is derived from the width and \texttt{THREADS\_DP\_CONSTANT (C2)} and capped at half of the available threads to reduce synchronization overhead. Similarly, the seam removal phase is memory-bound and parallelized across image rows, so its thread count is based on the image height and \texttt{THREADS\_REMOVAL\_CONSTANT (C3)} and also conservatively limited to prevent contention for memory bandwidth. The constants were set to different valaues and tested to find the right balance as can be seen in results.
+An \textbf{optimization} is supported via \texttt{USE\_DYNAMIC\_THREADS} macro, which keeps the same pragmas but sets \textbf{different number of threads} at the boundaries between phases so each stage can use a different size. The heuristic dynamically selects the number of threads based on width and height. For the energy computation, the thread count scales with the total workload divided by a tuning constant \texttt{THREADS\_ENERGY\_CONSTANT (C1)}. The thread count for the dynamic programming phase is derived from the width and \texttt{THREADS\_DP\_CONSTANT (C2)} and capped at half of the available threads to reduce synchronization overhead. Similarly, the seam removal phase is memory-bound and parallelized across image rows, so its thread count is based on the image height and \texttt{THREADS\_REMOVAL\_CONSTANT (C3)} but not capped at half like before. The constants were set to different valaues and tested to find the right balance as can be seen in results. We name thread counts implied by these constants \texttt{T1}, \texttt{T2} and \texttt{T3} respectively.
 
 We also implemented \textbf{greedy seam removal} which removes multiple seams without calculating the energy for each removal and compared the results by looking at speed up and picture quality. In order to achieve further paralelization we divided the picture into blocks where width is divided by the number of threads in use. The path finding is limited to the block so that these can be done in parallel independently. This is supported via \texttt{USE\_GREEDY\_REMOVAL} macro.
 
 \section{Comparing Parallelization Without Optimization}
 
-The following table lists the average \textbf{total time in seconds} used for the sequential and parallel algorithm implementation over 5 repetitions and run on different number of threads. One thread data is included in order to test library overhead when comparing to pure sequential implementation.
+The following table lists the average \textbf{total time in seconds} used for the sequential and parallel algorithm implementation over five repetitions and run on different number of threads. One thread data is included in order to test library overhead when comparing to pure sequential implementation.
 
 \begin{figure}[H]
     \begin{minipage}{\textwidth}
@@ -65,27 +65,26 @@ The use of include guards for this library allows us to truly see the difference
 
 \section{Dynamic Thread Optimization}
 
-We ran the algorithm using only one repetition allowing 32 threads, however setting each of the constants to different values. The \textbf{best values for the constants and time} can be seen below. This optimization managed to speed-up most image processing, especially for larger images. For smaller ones there was barely any noticable difference.
+We ran the whole pipeline using four times for 16 and once 32 threads, setting each of the constants to different values. Afterwards we tweaked each individual value again. We tried to figure out whether a low thread or a high thread count was prefered by each step. The \textbf{best values for the constants and average time for optimized and non-optimized algorithm} in seconds for 16 threads can be seen below. Full results and analysis can be found in our \href{https://github.com/Edelwy/HPC/blob/main/Assignment1/latex/analiza.ipynb}{jupyter notebook}.
 
 \begin{figure}[H]
     \begin{minipage}{\textwidth}
         \begin{table}[H]
             \centering
-            \begin{tabular}{|l|p{1.8cm}|p{1cm}|p{1cm}|p{1.1cm}|} \hline
-                \cellcolor{blue!20}\textbf{image} & \cellcolor{blue!20}\texttt{time (s)} & \cellcolor{blue!20}\texttt{C1} & \cellcolor{blue!20}\texttt{C2} & \cellcolor{blue!20}\texttt{C3} \\ \hline
-                \texttt{720$\times$480} & \cellcolor{green!20}0.333 & 1000 & 500 & 100 \\ \hline
-                \texttt{1024$\times$768} & \cellcolor{green!20}0.471 & 500 & 1000 & 100 \\ \hline
-                \texttt{1920$\times$1200} & \cellcolor{green!20}0.778 & 1000 & 500 & 100 \\ \hline
-                \texttt{3840$\times$2160} & \cellcolor{green!20}2.502 & 500 & 1000 & 100 \\ \hline
-                \texttt{7680$\times$4320} & \cellcolor{green!20}9.154 & 500 & 1000 & 100 \\ \hline
+            \begin{tabular}{|l|p{2.1cm}|p{2.2cm}|p{1.7cm}|p{1.7cm}|p{1.7cm}|} \hline
+                \cellcolor{blue!20}\textbf{image} &\cellcolor{blue!20}\texttt{new time} & \cellcolor{blue!20}\texttt{old time} & \cellcolor{blue!20}\texttt{avg. T1} & \cellcolor{blue!20}\texttt{avg. T2} & \cellcolor{blue!20}\texttt{avg. T3} \\ \hline
+                \texttt{720$\times$480} & \cellcolor{green!20}0.239 & \cellcolor{red!20}0.348 & 16.0 & 1.0 & 7.0 \\ \hline
+                \texttt{1024$\times$768} & \cellcolor{green!20}0.414 & \cellcolor{red!20}0.628 & 16.0 & 1.0 & 9.25 \\ \hline
+                \texttt{1920$\times$1200} & \cellcolor{green!20}0.912 & \cellcolor{red!20}1.224 & 16.0 & 2.5 & 13.0 \\ \hline
+                \texttt{3840$\times$2160} & \cellcolor{green!20}3.358 & \cellcolor{red!20}3.732 & 16.0 & 3.0 & 16.0 \\ \hline
+                \texttt{7680$\times$4320} & \cellcolor{green!20}13.459 & \cellcolor{red!20}13.553 & 16.0 & 7.5 & 14.0 \\ \hline
             \end{tabular}
             \caption{Best heuristic per image, one run per configuration.}
         \end{table}
     \end{minipage}
 \end{figure}
 
-\textcolor{red}{TODO: Fix the heuristic for C1 because this always utilizes all threads and 16 threads!}
-It is interasting to see that for all images a small constat was prefered when shifting pixles, meaning most if not all threads were utilized, therefore memory constraints did not impose as much overhead as expected. For the seam identification, for example at width, $720$ less threads were prefered with $720/500$ giving a single thread compared to $720/100$ giving 7 threads. Same goes for width $1024$. So due to sychronization overhead a sequential approach to seam finding for small images turned out to be better.
+Since pixel count is quite high for all images, the expected result is to use all \textbf{16 threads} for energy calculation. For the seam identification almost always \textbf{less threads} were prefered, for the smallest images always choosing one thread as the optimal solution. So due to sychronization overhead a sequential approach to seam finding for small images turned out to be better. It is interasting to see that for all images \textbf{high thread} count was prefered when shifting pixles, meaning most threads were utilized, therefore memory constraints did not impose much overhead.
 
 \section{Greedy Seam Removal}
 

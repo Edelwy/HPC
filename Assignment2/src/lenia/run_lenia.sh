@@ -13,7 +13,7 @@
 module load CUDA
 
 #BUILD
-make
+make clean && make
 
 #RUN
 srun ./lenia.out

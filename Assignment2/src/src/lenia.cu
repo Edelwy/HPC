@@ -1,1 +1,1 @@
-lenia_base.cu
+lenia_opt.cu

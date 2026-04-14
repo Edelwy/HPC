@@ -10,7 +10,7 @@
 // #include <cuda.h>
 
 // Uncomment to generate gif animation
-#define GENERATE_GIF
+#define GENERATE_GIF 0
 
 // For prettier indexing syntax
 #define w_opt(r, c) (w[(r) * kernel_size + (c)])

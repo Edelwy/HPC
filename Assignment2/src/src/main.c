@@ -9,6 +9,8 @@
 #define KERNEL_SIZE 26
 #define NUM_ORBIUMS 2
 
+#define PRINT_STATE 0
+
 void final_state(double* world, int n)
 {
     FILE* fp = fopen("final_state.txt", "w");
@@ -40,8 +42,10 @@ int main(int argc, char** argv)
     double stop = omp_get_wtime();
     printf("Execution time: %.3f\n", stop - start);
 
-    // Export the final state to a text file.
+#if PRINT_STATE // Export the final state to a text file.
     final_state(world, n);
+#endif
+
     free(world);
     return 0;
 }

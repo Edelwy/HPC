@@ -6,14 +6,14 @@
 #   --outfile <f>  CSV path to avoid override
 #   --extended     keep lenia.gif / final_state.txt 
 
-######################---#SBATCH --reservation=fri
-#######SBATCH --partition=gpu
+#SBATCH --reservation=fri
+#SBATCH --partition=gpu
 #SBATCH --job-name=lenia
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#######SBATCH --gpus=1
+#SBATCH --gpus=1
 #SBATCH --nodes=1
-#SBATCH --output=lenia_out.log
+#SBATCH --output=lenia_%j.log
 
 #LOAD MODULES 
 module load CUDA
@@ -22,7 +22,7 @@ extended=0
 reps=5
 size=512
 outfile=results.csv
-methods=( base opt omp novoid opt_gpu)
+methods=( base opt omp novoid opt_gpu )
 
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -64,11 +64,17 @@ for method in "${methods[@]}"; do
 		echo "  trial ${run}/${reps}"
 
 		#RUN
-		out=$(srun ./lenia.out "${size}")
-		echo $out
+		out=$(srun ./lenia.out "${size}") || true
+		echo "$out"
 
-		#SAVE
-		line="${run},${size},${method},${out##Execution time: }"
+		#SAVE: strip CR, then first field after "Execution time:"
+		#had issues without this :)
+		out="${out//$'\r'/}"
+		t=""
+		if [[ "${out}" == *"Execution time:"* ]]; then
+			read -r t _ <<< "${out##*Execution time:}"
+		fi
+		line="${run},${size},${method},${t}"
 		echo "${line}" >> "${outfile}"
 
 		#GIF / TXT 

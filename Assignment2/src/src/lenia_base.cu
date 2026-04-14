@@ -10,7 +10,7 @@
 // #include <cuda.h>
 
 // Uncomment to generate gif animation
-#define GENERATE_GIF 1
+#define GENERATE_GIF 0
 
 // For prettier indexing syntax
 #define w(r, c) (w[(r) * w_cols + (c)])

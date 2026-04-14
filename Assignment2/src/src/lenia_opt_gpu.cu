@@ -170,7 +170,6 @@ double *evolve_lenia(const unsigned int rows, const unsigned int cols, const uns
     
     int R = kernel_size / 2;
     
-    // Timing. TODO: decide where to time.
     cudaEvent_t start, stop, startKernel, stopKernel;
     checkCudaErrors(cudaEventCreate(&start));
     checkCudaErrors(cudaEventCreate(&stop));

@@ -9,22 +9,18 @@
 #SBATCH --reservation=fri
 #SBATCH --job-name=lenia
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=1
 #SBATCH --hint=nomultithread
 #SBATCH --output=lenia_%j.log
 
 #LOAD MODULES 
 module load CUDA
 
-export OMP_PLACES=cores
-export OMP_PROC_BIND=close
-export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-16}"
-
 extended=0
 reps=5
 size=512
 outfile=results.csv
-methods=( base opt omp novoid )
+methods=( base opt novoid )
 
 while [ $# -gt 0 ]; do
 	case "$1" in

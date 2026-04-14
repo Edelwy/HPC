@@ -7,22 +7,24 @@
 #   --extended     keep lenia.gif / final_state.txt 
 
 #SBATCH --reservation=fri
-#SBATCH --partition=gpu
 #SBATCH --job-name=lenia
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH --gpus=1
-#SBATCH --nodes=1
+#SBATCH --cpus-per-task=32
+#SBATCH --hint=nomultithread
 #SBATCH --output=lenia_%j.log
 
 #LOAD MODULES 
 module load CUDA
 
+export OMP_PLACES=cores
+export OMP_PROC_BIND=close
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-32}"
+
 extended=0
 reps=5
 size=512
 outfile=results.csv
-methods=( opt_gpu )
+methods=( omp )
 
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -64,17 +66,11 @@ for method in "${methods[@]}"; do
 		echo "  trial ${run}/${reps}"
 
 		#RUN
-		out=$(srun ./lenia.out "${size}") || true
-		echo "$out"
+		out=$(srun ./lenia.out "${size}")
+		echo $out
 
-		#SAVE: strip CR, then first field after "Execution time:"
-		#had issues without this :)
-		out="${out//$'\r'/}"
-		t=""
-		if [[ "${out}" == *"Execution time:"* ]]; then
-			read -r t _ <<< "${out##*Execution time:}"
-		fi
-		line="${run},${size},${method},${t}"
+		#SAVE
+		line="${run},${size},${method},${out##Execution time: }"
 		echo "${line}" >> "${outfile}"
 
 		#GIF / TXT 

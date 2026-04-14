@@ -9,33 +9,39 @@
 #define KERNEL_SIZE 26
 #define NUM_ORBIUMS 2
 
-// Place two orbiums in the world with different angles. (y, x, angle)
-// Orbiums size is 20x20, supproted angles are 0, 90, 180 and 270 degrees.
-struct orbium_coo orbiums[NUM_ORBIUMS] = {{0, N / 3, 0}, {N / 3, 0, 180}};
-
-void final_state(double* world)
+void final_state(double* world, int n)
 {
     FILE* fp = fopen("final_state.txt", "w");
     if (fp == NULL) 
         return;
     
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            fprintf(fp, "%f ", world[i * N + j]);
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            fprintf(fp, "%f ", world[i * n + j]);
         }
         fputc('\n', fp);
     }
     fclose(fp);
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    // Get the grid size from the command line.
+    int n = N;
+    if (argc > 1)
+        n = atoi(argv[1]);
+
+    // Place two orbiums in the world with different angles. (y, x, angle)
+    // Orbiums size is 20x20, supproted angles are 0, 90, 180 and 270 degrees.
+    struct orbium_coo orbiums[NUM_ORBIUMS] = {{0, n / 3, 0}, {n / 3, 0, 180}};
+
     double start = omp_get_wtime();
-    // Run the simulation
-    double *world = evolve_lenia(N, N, NUM_STEPS, DT, KERNEL_SIZE, orbiums, NUM_ORBIUMS);
+    double *world = evolve_lenia(n, n, NUM_STEPS, DT, KERNEL_SIZE, orbiums, NUM_ORBIUMS);
     double stop = omp_get_wtime();
     printf("Execution time: %.3f\n", stop - start);
-    final_state(world);
+
+    // Export the final state to a text file.
+    final_state(world, n);
     free(world);
     return 0;
 }

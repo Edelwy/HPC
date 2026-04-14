@@ -1,1 +1,1 @@
-lenia_novoid.cu
+lenia_base.cu

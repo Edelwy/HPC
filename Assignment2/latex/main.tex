@@ -41,13 +41,13 @@ The first table lists the \textbf{execution time in seconds}. Each algorithm was
 
 \begin{table}[H]
     \centering
-    \begin{tabular}{|l|r|r|r|r|r|} \hline
-        \cellcolor{blue!20}\textbf{Size} & \cellcolor{blue!20}\texttt{base} & \cellcolor{blue!20}\texttt{opt} & \cellcolor{blue!20}\texttt{novoid} & \cellcolor{blue!20}\texttt{omp} & \cellcolor{blue!20}\texttt{opt\_gpu} \\ \hline
-        \texttt{256}  & \cellcolor{red!20}19.646  & 4.911   & 1.629   & 0.705  & \cellcolor{green!20}0.217  \\ \hline
-        \texttt{512}  & \cellcolor{red!20}78.187  & 19.267  & 5.797   & 0.846  & \cellcolor{green!20}0.406  \\ \hline
-        \texttt{1024} & \cellcolor{red!20}312.362 & 76.713  & 22.987  & 2.874  & \cellcolor{green!20}0.607  \\ \hline
-        \texttt{2048} & \cellcolor{red!20}1248.073 & 307.526 & 91.992  & 10.972 & \cellcolor{green!20}2.056  \\ \hline
-        \texttt{4096} & \cellcolor{red!20}4996.188 & 1569.356 & 459.321 & 52.081 & \cellcolor{green!20}7.085  \\ \hline
+    \begin{tabular}{|l|r|r|r|r|r|r|} \hline
+        \cellcolor{blue!20}\textbf{Size} & \cellcolor{blue!20}\texttt{base} & \cellcolor{blue!20}\texttt{opt} & \cellcolor{blue!20}\texttt{novoid} & \cellcolor{blue!20}\texttt{omp} & \cellcolor{blue!20}\texttt{novoid-omp} & \cellcolor{blue!20}\texttt{opt\_gpu} \\ \hline
+        \texttt{256}  & \cellcolor{red!20}19.646  & 4.911   & 1.629   & 0.321  & 0.215 & \cellcolor{green!20}0.217  \\ \hline
+        \texttt{512}  & \cellcolor{red!20}78.187  & 19.267  & 5.797   & 0.846  & 0.440 & \cellcolor{green!20}0.406  \\ \hline
+        \texttt{1024} & \cellcolor{red!20}312.362 & 76.713  & 22.987  & 2.874  & 1.339 & \cellcolor{green!20}0.607  \\ \hline
+        \texttt{2048} & \cellcolor{red!20}1248.073 & 307.526 & 91.992  & 10.972 & 4.765 & \cellcolor{green!20}2.056  \\ \hline
+        \texttt{4096} & \cellcolor{red!20}4996.188 & 1569.356 & 459.321 & 52.081 & 21.766 & \cellcolor{green!20}7.085  \\ \hline
     \end{tabular}
     \caption{Average execution time (s) per method and grid size.}
 \end{table}
@@ -92,13 +92,13 @@ The second row of tables shows the speed-ups of the improvements to the CPU algo
 
 \begin{table}[H]
     \centering
-    \begin{tabular}{|l|r|r|r|r|} \hline
-        \cellcolor{blue!20}\textbf{Size} & \cellcolor{blue!20}\texttt{base} & \cellcolor{blue!20}\texttt{opt} & \cellcolor{blue!20}\texttt{novoid} & \cellcolor{blue!20}\texttt{omp} \\ \hline
-        \texttt{256}  & \cellcolor{green!20}90.369  & 22.589  & 7.492  & \cellcolor{red!20}3.241  \\ \hline
-        \texttt{512}  & \cellcolor{green!20}192.389 & 47.408  & 14.265 & \cellcolor{red!20}2.081  \\ \hline
-        \texttt{1024} & \cellcolor{green!20}514.769 & 126.423 & 37.882 & \cellcolor{red!20}4.737  \\ \hline
-        \texttt{2048} & \cellcolor{green!20}607.039 & 149.575 & 44.743 & \cellcolor{red!20}5.336  \\ \hline
-        \texttt{4096} & \cellcolor{green!20}705.198 & 221.51 & 64.832 & \cellcolor{red!20}7.351  \\ \hline
+    \begin{tabular}{|l|r|r|r|r|r|} \hline
+        \cellcolor{blue!20}\textbf{Size} & \cellcolor{blue!20}\texttt{base} & \cellcolor{blue!20}\texttt{opt} & \cellcolor{blue!20}\texttt{novoid} & \cellcolor{blue!20}\texttt{omp} & \cellcolor{blue!20}\texttt{omp} \\ \hline
+        \texttt{256}  & \cellcolor{green!20}90.369  & 22.589  & 7.492 & 3.241 & \cellcolor{red!20}0.991  \\ \hline
+        \texttt{512}  & \cellcolor{green!20}192.389 & 47.408  & 14.265 & 2.081 & \cellcolor{red!20}1.084  \\ \hline
+        \texttt{1024} & \cellcolor{green!20}514.769 & 126.423 & 37.882 & 4.737 & \cellcolor{red!20}2.206  \\ \hline
+        \texttt{2048} & \cellcolor{green!20}607.039 & 149.575 & 44.743 & 5.336 & \cellcolor{red!20}2.318  \\ \hline
+        \texttt{4096} & \cellcolor{green!20}705.198 & 221.51 & 64.832 & 7.351 & \cellcolor{red!20}3.072  \\ \hline
     \end{tabular}
     \caption{Speed-up of GPU vs each CPU method.}
 \end{table}

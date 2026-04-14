@@ -4,7 +4,8 @@
 #   --size <n>     only this grid side
 #   --reps <m>     trials for all methods, default is 1
 #   --outfile <f>  CSV path to avoid override
-#   --extended     keep lenia.gif / final_state.txt 
+#   --extended     keep lenia.gif / final_state.txt
+#   --block <n>    CUDA block side (BLOCKSIZE), default 16; rebuilds with make BLOCKSIZE=<n>
 
 #SBATCH --reservation=fri
 #SBATCH --partition=gpu
@@ -22,6 +23,7 @@ extended=0
 reps=5
 size=512
 outfile=results.csv
+blocksize=16
 methods=( opt_gpu )
 
 while [ $# -gt 0 ]; do
@@ -42,8 +44,13 @@ while [ $# -gt 0 ]; do
 			outfile="${1:?--outfile needs a value}"
 			shift
 			;;
+		--block)
+			shift
+			blocksize="${1:?--block needs a value}"
+			shift
+			;;
 		*)
-			echo "Unknown option: $1 (try --size <n>, --reps, --outfile, --extended)" >&2
+			echo "Unknown option: $1 (try --size <n>, --reps, --outfile, --block <n>, --extended)" >&2
 			exit 1
 			;;
 	esac
@@ -57,8 +64,8 @@ for method in "${methods[@]}"; do
 	#LINK
 	ln -sf lenia_${method}.cu src/lenia.cu
 
-	#BUILD
-	make -B
+	#BUILD (BLOCKSIZE) 
+	make -B BLOCKSIZE="${blocksize}"
 
 	for ((run = 1; run <= reps; run++)); do
 		echo "  trial ${run}/${reps}"

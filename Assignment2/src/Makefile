@@ -3,7 +3,8 @@ CC = nvcc
 
 # Compiler flags
 LDLIBS = -lm
-CFLAGS = -Wno-deprecated-gpu-targets -gencode=arch=compute_70,code=sm_70 -O3 -Xcompiler --openmp,-Wall
+BLOCKSIZE ?= 16
+CFLAGS = -Wno-deprecated-gpu-targets -gencode=arch=compute_70,code=sm_70 -O3 -Xcompiler --openmp,-Wall -DBLOCKSIZE=$(BLOCKSIZE)
 
 SRC=src
 

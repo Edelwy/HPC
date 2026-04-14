@@ -22,7 +22,9 @@
 #define input(r, c) (input[((r) % rows) * cols + ((c) % cols)])
 
 // Cuda sizes
-#define BLOCKSIZE 16 // 16 or 32
+#ifndef BLOCKSIZE
+#define BLOCKSIZE 16
+#endif
 #define MAX_KERNEL_SIZE 64
 
 // Assumption: kernel goes into constant memory
@@ -199,6 +201,8 @@ double *evolve_lenia(const unsigned int rows, const unsigned int cols, const uns
 
     checkCudaErrors(cudaMemcpy(d_world, world, rows * cols * sizeof(double), cudaMemcpyHostToDevice));
 
+	printf("Block size: %d \n", BLOCKSIZE);
+    
     // Kernel configuration
     dim3 block(BLOCKSIZE, BLOCKSIZE);
     dim3 grid((cols + BLOCKSIZE - 1) / BLOCKSIZE, (rows + BLOCKSIZE - 1) / BLOCKSIZE);

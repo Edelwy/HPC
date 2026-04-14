@@ -107,16 +107,16 @@ __global__ void convolutionStep(double* world, double* world_b, int rows, int co
     int x = bx + tx;
     int y = by + ty;
 
-    int tile_width = blockDim.x + kernel_size - 1;
+    const int tile_w = blockDim.x + kernel_size - 1;
+    const int tile_h = blockDim.y + kernel_size - 1;
 
-    // Load shared memory tile
-    for (int dy = ty; dy < tile_width; dy += blockDim.y)
+    for (int dy = ty; dy < tile_h; dy += blockDim.y)
     {
-        for (int dx = tx; dx < tile_width; dx += blockDim.x)
+        for (int dx = tx; dx < tile_w; dx += blockDim.x)
         {
             int gx = wrap(bx + dx - R, cols);
             int gy = wrap(by + dy - R, rows);
-            tile[dy * tile_width + dx] = world[gy * cols + gx];
+            tile[dy * tile_w + dx] = world[gy * cols + gx];
         }
     }
 
@@ -126,12 +126,13 @@ __global__ void convolutionStep(double* world, double* world_b, int rows, int co
     {
         double sum = 0.0;
 
-        // Convolution
-        for (int ki = 0; ki < kernel_size; ki++)
+        for (int kri = 0; kri < kernel_size; kri++)
         {
-            for (int kj = 0; kj < kernel_size; kj++)
+            for (int kcj = 0; kcj < kernel_size; kcj++)
             {
-                sum += d_w[ki * kernel_size + kj] * tile[(ty + ki) * tile_width + (tx + kj)];
+                const int wi = kernel_size - 1 - kri;
+                const int wj = kernel_size - 1 - kcj;
+                sum += d_w[wi * kernel_size + wj] * tile[(ty + kri) * tile_w + (tx + kcj)];
             }
         }
 
@@ -203,7 +204,9 @@ double *evolve_lenia(const unsigned int rows, const unsigned int cols, const uns
     dim3 block(BLOCKSIZE, BLOCKSIZE);
     dim3 grid((cols + BLOCKSIZE - 1) / BLOCKSIZE, (rows + BLOCKSIZE - 1) / BLOCKSIZE);
 
-    int sharedMemSize = (BLOCKSIZE + kernel_size - 1) * (BLOCKSIZE + kernel_size - 1) * sizeof(double);
+    const int tile_w_host = (int)BLOCKSIZE + (int)kernel_size - 1;
+    const int tile_h_host = (int)BLOCKSIZE + (int)kernel_size - 1;
+    int sharedMemSize = tile_w_host * tile_h_host * (int)sizeof(double);
     
     // Lenia Simulation
     checkCudaErrors(cudaEventRecord(startKernel));
@@ -211,14 +214,17 @@ double *evolve_lenia(const unsigned int rows, const unsigned int cols, const uns
     {
         convolutionStep<<<grid, block, sharedMemSize>>>(d_world, d_world_b, rows, cols, kernel_size, R, dt);
         checkCudaErrors(cudaGetLastError());
-        //cudaDeviceSynchronize();
+        cudaDeviceSynchronize();
 
         double* tmp = d_world;
         d_world = d_world_b;
         d_world_b = tmp;
 
         #ifdef GENERATE_GIF
-        //TODO: doesnt work yet. take care of gif->frame[cell] = world_b[cell] * 255;
+        checkCudaErrors(cudaMemcpy(world, d_world, rows * cols * sizeof(double), cudaMemcpyDeviceToHost));
+        for (int cel = 0; cel < rows * cols; cel++) {
+            gif->frame[cel] = world[cel] * 255;
+        }
         ge_add_frame(gif, 5);
         #endif
     }

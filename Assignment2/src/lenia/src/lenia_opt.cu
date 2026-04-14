@@ -129,9 +129,9 @@ double *evolve_lenia(const unsigned int rows, const unsigned int cols, const uns
                     for (int kj = kernel_size - 1, kcj = 0; kj >= 0; kj--, kcj++)
                     {
                         int ni = wrap(i - R + kri, rows);
-			int nj = wrap(j - R + kcj, cols);
+                        int nj = wrap(j - R + kcj, cols);
 
-			sum += w_opt(ki, kj) * world[ni * cols + nj];
+                        sum += w_opt(ki, kj) * world[ni * cols + nj];
                     }
                 }
                 int cell = i * cols + j;

@@ -20,6 +20,13 @@ int main()
     double *world = evolve_lenia(N, N, NUM_STEPS, DT, KERNEL_SIZE, orbiums, NUM_ORBIUMS);
     double stop = omp_get_wtime();
     printf("Execution time: %.3f\n", stop - start);
+    printf("Final state:\n");
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%f ", world[i*N + j]);
+        }
+        putchar('\n');
+    }
     free(world);
     return 0;
 }

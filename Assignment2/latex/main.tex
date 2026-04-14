@@ -13,7 +13,48 @@ Our scripts and modified source code can be found in our \href{https://github.co
 
 \section{Experimenting With Optimizations}
 
-\textcolor{red}{TODO: opt, novoid, omp and optimal thread for CUDA}
+%\textcolor{red}{TODO: opt, novoid, omp and optimal thread for CUDA}
+\subsection{Base}
+
+While the base level provided in the repository, it is not very efficient.
+It iterates over the world twice for each step uses inefficient operations occasionally.
+It completed the benchmark of XXXXX steps with a grid size of YYYYYYYYY in ZZZZ.
+
+\subsection{Optimized Version}
+
+Before attempting parallelization it makes sense to optimize the sequential code.
+By joining the contents of convolve2d into the mail loop inside \verb|evolve\_lenia|
+we no longer iterate throught the entire 2d grid twice for each step of the evolution.
+By optimizing the wrapping to use if statements instead of computing the modulo of the index,
+we can also improve the performance.
+Another area of improvement is the double buffering of the world,
+which eliminated the need for storing tge intermediate result of the convolution
+and the adding it to the main world buffer.
+Instead, the world buffer is duplicated and changes are written directly to the secind buffer.
+After each step, the buffers are swapped.
+The old one becomes the input and the second becomes the output.
+These changes reduced the time from the base level to AAAAAAA, a speedup of BBBBBBBBB.
+
+\subsection{OpenMP}
+
+The key area for improvement in the improved version is the main iteration through the world.
+These convolutions can be computed in parellel as they are independent from each other.
+This can be done simply with a 
+\verb|#pragma omp parallel for collapse(2)|
+befor the first for-loop.
+This change reduced the speed to CCCCCCC when ran with DDDDDD threads.
+
+\subsection{Novoid}
+
+The final optimization performs a quick check before starting each step,
+which determined the 'active region' of the world, where there exists a non-zero value.
+Any empty areas will be skipped, which reduces the time further.
+In our testing with 2 Orbium organisms,
+this resulted in a reduction to EEEEEE.
+It is worth noting that this approach is, unlike the previous optimizations, not universal.
+This optimization will only result in an improvement when dealing with a scarecely populated world.
+The overhead of the search may even increase the processing time in a densely populated world.
+
 
 \section{Comparing Execution times}
 

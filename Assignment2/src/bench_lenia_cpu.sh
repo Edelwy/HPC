@@ -14,8 +14,8 @@ module load CUDA
 
 
 #methods=( base omp cuda )
-#methods=( base opt omp novoid )
-methods=( novoid )
+methods=( base opt omp novoid )
+#methods=( novoid )
 outfile=results.csv
 
 echo "Method,Time;">"${outfile}"

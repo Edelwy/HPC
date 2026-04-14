@@ -4,22 +4,37 @@
 #include "lenia.h"
 #include "orbium.h"
 #include "gifenc.h"
+#include <omp.h>
 
 // Include CUDA headers
 // #include <cuda_runtime.h>
 // #include <cuda.h>
 
 // Uncomment to generate gif animation
-#define GENERATE_GIF
+#define GENERATE_GIF 1
 
 // For prettier indexing syntax
+#define w_opt(r, c) (w[(r) * kernel_size + (c)])
+#define input_opt(r, c) (world[((r) % rows) * cols + ((c) % cols)])
+
 #define w(r, c) (w[(r) * w_cols + (c)])
 #define input(r, c) (input[((r) % rows) * cols + ((c) % cols)])
 
 // Function to calculate Gaussian
 inline double gauss(double x, double mu, double sigma)
 {
-    return exp(-0.5 * pow((x - mu) / sigma, 2));
+//    return exp(-0.5 * pow((x - mu) / sigma, 2));
+    double t = (x - mu) / sigma;
+    return exp(-0.5 * t * t);
+}
+
+
+// modulo is slooow
+inline int wrap(int x, int max)
+{
+    if (x < 0) return x + max;
+    if (x >= max) return x - max;
+    return x;
 }
 
 // Function for growth criteria
@@ -65,30 +80,6 @@ double *generate_kernel(double *K, const unsigned int size)
     return K;
 }
 
-// Function to perform convolution on input using kernel w
-// Note that the kernel is flipped for convolution as per definition, and we use modular indexing for toroidal world
-inline double *convolve2d(double *result, const double *input, const double *w, const unsigned int rows, const unsigned int cols, const unsigned int w_rows, const unsigned int w_cols)
-{
-    if (result != NULL && input != NULL && w != NULL)
-    {
-        for (unsigned int i = 0; i < rows; i++)
-        {
-            for (unsigned int j = 0; j < cols; j++)
-            {
-                double sum = 0;
-                for (int ki = w_rows - 1, kri = 0; ki >= 0; ki--, kri++)
-                {
-                    for (int kj = w_cols - 1, kcj = 0; kj >= 0; kj--, kcj++)
-                    {
-                        sum += w(ki, kj) * input((i - w_rows / 2 + rows + kri), (j - w_cols / 2 + cols + kcj));
-                    }
-                }
-                result[i * cols + j] = sum;
-            }
-        }
-    }
-    return result;
-}
 
 // Function to evolve Lenia
 double *evolve_lenia(const unsigned int rows, const unsigned int cols, const unsigned int steps, const double dt, const unsigned int kernel_size, const struct orbium_coo *orbiums, const unsigned int num_orbiums)
@@ -108,12 +99,16 @@ double *evolve_lenia(const unsigned int rows, const unsigned int cols, const uns
     // Allocate memory
     double *w = (double *)calloc(kernel_size * kernel_size, sizeof(double));
     double *world = (double *)calloc(rows * cols, sizeof(double));
+    double *world_b = (double *)calloc(rows * cols, sizeof(double));
     double *tmp = (double *)calloc(rows * cols, sizeof(double));
+
+    int R = kernel_size / 2;
 
     // Generate convolution kernel
     w=generate_kernel(w,kernel_size);
 
     // Place orbiums
+    #pragma omp parallel for
     for (unsigned int o = 0; o < num_orbiums; o++)
     {
         world = place_orbium(world, rows, cols, orbiums[o].row, orbiums[o].col, orbiums[o].angle);
@@ -122,21 +117,41 @@ double *evolve_lenia(const unsigned int rows, const unsigned int cols, const uns
     // Lenia Simulation
     for (unsigned int step = 0; step < steps; step++)
     {
-        // Convolution
-        tmp = convolve2d(tmp, world, w, rows, cols, kernel_size, kernel_size);
         
         // Evolution
+        #pragma omp parallel for collapse(2)
         for (unsigned int i = 0; i < rows; i++)
         {
             for (unsigned int j = 0; j < cols; j++)
             {
-                world[i * rows + j] += dt * growth_lenia(tmp[i * rows + j]);
-                world[i * rows + j] = fmin(1, fmax(0, world[i * rows + j])); // Clip between 0 and 1
+            
+                // from convolve2d
+                double sum = 0;
+                for (int ki = kernel_size - 1, kri = 0; ki >= 0; ki--, kri++)
+                {
+                    for (int kj = kernel_size - 1, kcj = 0; kj >= 0; kj--, kcj++)
+                    {
+                        int ni = wrap(i - R + kri, rows);
+			int nj = wrap(j - R + kcj, cols);
+
+			sum += w_opt(ki, kj) * world[ni * cols + nj];
+                    }
+                }
+                int cell = i * cols + j;
+                tmp[cell] = sum;
+            
+                world_b[cell] = world[cell] + dt * growth_lenia(tmp[cell]);
+                world_b[cell] = fmin(1, fmax(0, world_b[cell])); // Clip between 0 and 1
 #ifdef GENERATE_GIF
-                gif->frame[i * rows + j] = world[i * rows + j] * 255;
+                gif->frame[cell] = world_b[cell] * 255;
 #endif
             }
         }
+        
+        double *tmp_ptr = world;
+	world = world_b;
+	world_b = tmp_ptr;
+        
 #ifdef GENERATE_GIF
         ge_add_frame(gif, 5);
 #endif

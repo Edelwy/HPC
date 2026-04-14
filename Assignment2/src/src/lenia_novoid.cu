@@ -4,14 +4,13 @@
 #include "lenia.h"
 #include "orbium.h"
 #include "gifenc.h"
-#include <omp.h>
 
 // Include CUDA headers
 // #include <cuda_runtime.h>
 // #include <cuda.h>
 
 // Uncomment to generate gif animation
-#define GENERATE_GIF
+#define GENERATE_GIF 1
 
 // For prettier indexing syntax
 #define w_opt(r, c) (w[(r) * kernel_size + (c)])
@@ -19,6 +18,8 @@
 
 #define w(r, c) (w[(r) * w_cols + (c)])
 #define input(r, c) (input[((r) % rows) * cols + ((c) % cols)])
+
+#define EPS 1e-6
 
 // Function to calculate Gaussian
 inline double gauss(double x, double mu, double sigma)
@@ -82,8 +83,7 @@ double *generate_kernel(double *K, const unsigned int size)
 
 
 // Function to evolve Lenia
-double *evolve_lenia(const unsigned int rows, const unsigned int cols, const unsigned int steps, const double dt, const unsigned int kernel_size, const struct orbium_coo *orbiums, const unsigned int num_orbiums)
-{
+double *evolve_lenia(const unsigned int rows, const unsigned int cols, const unsigned int steps, const double dt, const unsigned int kernel_size, const struct orbium_coo *orbiums, const unsigned int num_orbiums){
 
 #ifdef GENERATE_GIF
     ge_GIF *gif = ge_new_gif(
@@ -108,47 +108,76 @@ double *evolve_lenia(const unsigned int rows, const unsigned int cols, const uns
     w=generate_kernel(w,kernel_size);
 
     // Place orbiums
-    #pragma omp parallel for
-    for (unsigned int o = 0; o < num_orbiums; o++)
-    {
+    for (unsigned int o = 0; o < num_orbiums; o++){
         world = place_orbium(world, rows, cols, orbiums[o].row, orbiums[o].col, orbiums[o].angle);
     }
 
     // Lenia Simulation
-    for (unsigned int step = 0; step < steps; step++)
-    {
+    for (unsigned int step = 0; step < steps; step++){
         
-        // Evolution
-        #pragma omp parallel for collapse(2)
-        for (unsigned int i = 0; i < rows; i++)
-        {
-            for (unsigned int j = 0; j < cols; j++)
-            {
-            
-                // from convolve2d
-                double sum = 0;
-                for (int ki = kernel_size - 1, kri = 0; ki >= 0; ki--, kri++)
-                {
-                    for (int kj = kernel_size - 1, kcj = 0; kj >= 0; kj--, kcj++)
-                    {
-                        int ni = wrap(i - R + kri, rows);
-			int nj = wrap(j - R + kcj, cols);
 
-			sum += w_opt(ki, kj) * world[ni * cols + nj];
-                    }
+        for (int k = 0; k < rows * cols; k++){
+            world_b[k] = 0.0;
+        }
+
+        // find active regions...
+        int min_i = rows, max_i = -1;
+        int min_j = cols, max_j = -1;
+
+        for (int i = 0; i < rows; i++){
+            for (int j = 0; j < cols; j++){
+                if (world[i * cols + j] > EPS){
+                    if (i < min_i) min_i = i;
+                    if (i > max_i) max_i = i;
+                    if (j < min_j) min_j = j;
+                    if (j > max_j) max_j = j;
                 }
-                int cell = i * cols + j;
-                tmp[cell] = sum;
-            
-                world_b[cell] = world[cell] + dt * growth_lenia(tmp[cell]);
-                world_b[cell] = fmin(1, fmax(0, world_b[cell])); // Clip between 0 and 1
+            }
+        }
+
+        // ....und only handle them
+        if (max_i != -1){
+            int i0 = min_i - R;
+            int i1 = max_i + R;
+            int j0 = min_j - R;
+            int j1 = max_j + R;
+
+            for (int i = i0; i <= i1; i++){
+                int ii = wrap(i, rows);
+
+                for (int j = j0; j <= j1; j++){
+                    int jj = wrap(j, cols);
+
+                    double sum = 0;
+
+                    for (int kri = 0; kri < kernel_size; kri++){
+                        int ki = kernel_size - 1 - kri;
+                        int ni = wrap(ii - R + kri, rows);
+
+                        for (int kcj = 0; kcj < kernel_size; kcj++){
+                            int kj = kernel_size - 1 - kcj;
+                            int nj = wrap(jj - R + kcj, cols);
+
+                            sum += w_opt(ki, kj) * world[ni * cols + nj];
+                        }
+                    }
+
+                    int cell = ii * cols + jj;
+
+                    double t = (sum - 0.15) / 0.015;
+                    double g = -1.0 + 2.0 * exp(-0.5 * t * t);
+
+                    world_b[cell] = world[cell] + dt * g;
+                    world_b[cell] = fmin(1, fmax(0, world_b[cell]));
+
 #ifdef GENERATE_GIF
-                gif->frame[cell] = world_b[cell] * 255;
+                    gif->frame[cell] = world_b[cell] * 255;
 #endif
             }
         }
+    }
         
-        double *tmp_ptr = world;
+    double *tmp_ptr = world;
 	world = world_b;
 	world_b = tmp_ptr;
         

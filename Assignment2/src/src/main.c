@@ -13,6 +13,16 @@
 // Orbiums size is 20x20, supproted angles are 0, 90, 180 and 270 degrees.
 struct orbium_coo orbiums[NUM_ORBIUMS] = {{0, N / 3, 0}, {N / 3, 0, 180}};
 
+void final_state(double* world)
+{
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%f ", world[i*N + j]);
+        }
+        putchar('\n');
+    }
+}
+
 int main()
 {
     double start = omp_get_wtime();
@@ -20,13 +30,6 @@ int main()
     double *world = evolve_lenia(N, N, NUM_STEPS, DT, KERNEL_SIZE, orbiums, NUM_ORBIUMS);
     double stop = omp_get_wtime();
     printf("Execution time: %.3f\n", stop - start);
-    printf("Final state:\n");
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            printf("%f ", world[i*N + j]);
-        }
-        putchar('\n');
-    }
     free(world);
     return 0;
 }

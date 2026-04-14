@@ -11,6 +11,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --hint=nomultithread
+#SBATCH --time=08:00:00
 #SBATCH --output=lenia_%j.log
 
 #LOAD MODULES 

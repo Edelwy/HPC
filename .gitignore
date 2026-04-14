@@ -28,3 +28,6 @@
 **/results/**
 !**/results/
 !**/results/**
+
+# Logs are for debug, not included:
+**/logs/**

@@ -1,0 +1,4 @@
+Run,Size,Method,Time
+1,2048,base,1248.520
+1,2048,opt,306.427
+1,2048,novoid,92.057

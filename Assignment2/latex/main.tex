@@ -71,6 +71,6 @@ As expected the \textit{Python} based algorithm performed the worst with executi
 
 The optimized algorithm finished four times faster for almost all cases. The further optimization was three times as fast as the previous one. The OpenMP paralellelization speed-up became more noticable with larger sizes, which makes sense as synchronization overhead is not as detrimental. Same goes for the CUDA implementation. 
 
-We also experimented with different block sizes for $n\times n$ blocks. The measured runtimes are slightly higher than those obtained previously for block size $16$, which may be attributed to increased cluster load. We tested block sizes $32$, $16$ and $8$. The table can be found in \texttt{analysis.ipynb} as well, but the prefered block size was $16$. 
+We also experimented with different block sizes for $n\times n$ blocks. We tested block sizes $32$, $16$ and $8$. The table can be found in \texttt{analysis.ipynb} as well. The measured runtimes were higher than those obtained previously and very inconsistent, which may be attributed to increased cluster load and running without reservation might have caused sharing GPU node with other intensive tasks. It was impossible to determine whether block size $32$ or $16$ would be better. 
 
 \end{document}

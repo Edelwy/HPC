@@ -43,4 +43,9 @@ for method in "${methods[@]}"; do
 		mv lenia.gif lenia_${method}.gif
 	fi
 
+	#TXT
+	if [ -e final_state.txt ]; then
+		mv final_state.txt final_state_${method}.txt
+	fi
+
 done

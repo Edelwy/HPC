@@ -15,12 +15,17 @@ struct orbium_coo orbiums[NUM_ORBIUMS] = {{0, N / 3, 0}, {N / 3, 0, 180}};
 
 void final_state(double* world)
 {
+    FILE* fp = fopen("final_state.txt", "w");
+    if (fp == NULL) 
+        return;
+    
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            printf("%f ", world[i*N + j]);
+            fprintf(fp, "%f ", world[i * N + j]);
         }
-        putchar('\n');
+        fputc('\n', fp);
     }
+    fclose(fp);
 }
 
 int main()
@@ -30,6 +35,7 @@ int main()
     double *world = evolve_lenia(N, N, NUM_STEPS, DT, KERNEL_SIZE, orbiums, NUM_ORBIUMS);
     double stop = omp_get_wtime();
     printf("Execution time: %.3f\n", stop - start);
+    final_state(world);
     free(world);
     return 0;
 }

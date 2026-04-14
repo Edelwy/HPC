@@ -1,1 +1,1 @@
-lenia_opt_gpu.cu
+lenia_novoid.cu

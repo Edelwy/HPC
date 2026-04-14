@@ -1,0 +1,92 @@
+\documentclass[11pt]{article}
+\input{preamble.tex}
+
+\begin{document}
+\maketitle
+
+Source code for this assignment can be found on \href{https://github.com/laspp/HPC/blob/main/labs/03-Assignment2-CUDA/Assignment2.md}{GitHub}.
+Our scripts and modified source code can be found in our \href{https://github.com/Edelwy/HPC}{\textbf{GitHub} repository}. \href{https://chakazul.github.io/lenia.html}{\textbf{Lenia}} is a continuous cellular automaton generalising the Game of Life. Each iteration convolves the world grid with a ring kernel and applies a Gaussian growth function.
+
+\section{Implementation}
+
+\textcolor{red}{TODO: CUDA implementation}
+
+\section{Experimenting With Optimizations}
+
+\textcolor{red}{TODO: opt, novoid, omp and optimal thread for CUDA}
+
+\section{Comparing Execution times}
+
+The algorithms that ran on a \textbf{CPU node} with a \textbf{single thread} are the basic (\texttt{base}), the optimized (\texttt{opt}) and the empty regions skipping one (\texttt{novoid}). The OpenMP parallelization (\texttt{omp}) was executed on a \textbf{CPU node} using \textbf{32 threads}. The CUDA implementation (\texttt{opt\_gpu}) was executed on a \textbf{GPU node} with a single GPU.
+
+The first table lists the \textbf{execution time in seconds}. Each algorithm was tested 5 times on 100 steps for different grid sizes which can be seen below. The base algorithm on grid size 4096 was run only once due to the long execution time. The slowest execution time is marked with red and the fastest with green.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|r|r|r|r|r|} \hline
+        \cellcolor{blue!20}\textbf{Size} & \cellcolor{blue!20}\texttt{base} & \cellcolor{blue!20}\texttt{opt} & \cellcolor{blue!20}\texttt{novoid} & \cellcolor{blue!20}\texttt{omp} & \cellcolor{blue!20}\texttt{opt\_gpu} \\ \hline
+        \texttt{256}  & \cellcolor{red!20}19.646  & 4.911   & 1.629   & 0.705  & \cellcolor{green!20}0.217  \\ \hline
+        \texttt{512}  & \cellcolor{red!20}78.187  & 19.267  & 5.797   & 0.846  & \cellcolor{green!20}0.406  \\ \hline
+        \texttt{1024} & \cellcolor{red!20}312.362 & 76.713  & 22.987  & 2.874  & \cellcolor{green!20}0.607  \\ \hline
+        \texttt{2048} & \cellcolor{red!20}1248.073 & 307.526 & 91.992  & 10.972 & \cellcolor{green!20}2.056  \\ \hline
+        \texttt{4096} & \cellcolor{red!20}4996.188 & 1569.356 & 459.321 & 52.081 & \cellcolor{green!20}7.085  \\ \hline
+    \end{tabular}
+    \caption{Average execution time (s) per method and grid size.}
+\end{table}
+
+The second row of tables shows the speed-ups of the improvements to the CPU algorithms and the third table shows the speed-up of the CPU based algorithms compared to the GPU one. The biggest speed-up is denoted with green and smallest with red.
+
+\begin{table}[H]
+    \centering
+    \noindent
+    \begin{minipage}{0.2\textwidth}\centering
+        \begin{tabular}{|l|r|} \hline
+            \cellcolor{blue!20}\textbf{Size} & \cellcolor{blue!20}\texttt{base} \\ \hline
+            \texttt{256}  & 4.001 \\ \hline
+            \texttt{512}  & 4.058 \\ \hline
+            \texttt{1024} & 4.072 \\ \hline
+            \texttt{2048} & 4.058 \\ \hline
+            \texttt{4096} & 3.184 \\ \hline
+        \end{tabular}
+    \end{minipage}\hfill
+    \begin{minipage}{0.25\textwidth}\centering
+        \begin{tabular}{|l|r|r|} \hline
+            \cellcolor{blue!20}\textbf{Size} & \cellcolor{blue!20}\texttt{base} & \cellcolor{blue!20}\texttt{opt} \\ \hline
+            \texttt{256}  & 12.062 & 3.015 \\ \hline
+            \texttt{512}  & 13.487 & 3.323 \\ \hline
+            \texttt{1024} & 13.589 & 3.337 \\ \hline
+            \texttt{2048} & 13.567 & 3.343 \\ \hline
+            \texttt{4096} & 10.877 & 3.417 \\ \hline
+        \end{tabular}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}\centering
+        \begin{tabular}{|l|r|r|r|} \hline
+            \cellcolor{blue!20}\textbf{Size} & \cellcolor{blue!20}\texttt{base} & \cellcolor{blue!20}\texttt{opt} & \cellcolor{blue!20}\texttt{novoid} \\ \hline
+            \texttt{256}  & 27.883 & 6.97  & 2.312 \\ \hline
+            \texttt{512}  & 92.441 & 22.779 & 6.854 \\ \hline
+            \texttt{1024} & 108.67 & 26.688 & 7.997 \\ \hline
+            \texttt{2048} & 113.755 & 28.029 & 8.385 \\ \hline
+            \texttt{4096} & 95.931 & 30.133 & 8.819 \\ \hline
+        \end{tabular}
+    \end{minipage}
+    \caption{Speed-ups of each CPU algorithm optimization compared to the previous ones.}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|r|r|r|r|} \hline
+        \cellcolor{blue!20}\textbf{Size} & \cellcolor{blue!20}\texttt{base} & \cellcolor{blue!20}\texttt{opt} & \cellcolor{blue!20}\texttt{novoid} & \cellcolor{blue!20}\texttt{omp} \\ \hline
+        \texttt{256}  & \cellcolor{green!20}90.369  & 22.589  & 7.492  & \cellcolor{red!20}3.241  \\ \hline
+        \texttt{512}  & \cellcolor{green!20}192.389 & 47.408  & 14.265 & \cellcolor{red!20}2.081  \\ \hline
+        \texttt{1024} & \cellcolor{green!20}514.769 & 126.423 & 37.882 & \cellcolor{red!20}4.737  \\ \hline
+        \texttt{2048} & \cellcolor{green!20}607.039 & 149.575 & 44.743 & \cellcolor{red!20}5.336  \\ \hline
+        \texttt{4096} & \cellcolor{green!20}705.198 & 221.51 & 64.832 & \cellcolor{red!20}7.351  \\ \hline
+    \end{tabular}
+    \caption{Speed-up of GPU vs each CPU method.}
+\end{table}
+
+As expected the \textit{Python} based algorithm performed the worst with execution times being over a minute for all pictures except the $256\times 256$ one. It is interasting to note that the $4094\times4094$ grid took over an hour for the base implementation and only $7.35$ seconds with CUDA. However even polishing the single threded CPU version was enough to bring it down to under $8$ minutes. 
+
+The optimized algorithm finished four times faster for almost all cases. The further optimization was three times as fast as the previous one. The OpenMP paralellelization speed-up became more noticable with larger sizes, which makes sense as synchronization overhead is not as detrimental. Same goes for the CUDA implementation. 
+
+\end{document}

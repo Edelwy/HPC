@@ -1,6 +1,8 @@
 # Benchmark:
 *.csv
 *.log
+*.txt
+*.gif
 
 # Latex:
 **/latex/**
@@ -18,3 +20,14 @@
 *.out
 *.exe
 *.o
+
+# Media and results should be included:
+**/media/**
+!**/media/
+!**/media/**
+**/results/**
+!**/results/
+!**/results/**
+
+# Logs are for debug, not included:
+**/logs/**

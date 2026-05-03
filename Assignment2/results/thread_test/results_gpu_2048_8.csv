@@ -1,0 +1,6 @@
+Run,Size,Method,Time
+1,2048,opt_gpu,8.920
+2,2048,opt_gpu,9.843
+3,2048,opt_gpu,8.350
+4,2048,opt_gpu,8.194
+5,2048,opt_gpu,8.424

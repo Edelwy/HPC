@@ -1,0 +1,76 @@
+\documentclass[11pt]{article}
+\input{preamble.tex}
+
+\begin{document}
+\maketitle
+
+Source code for this assignment can be found on \href{https://github.com/laspp/HPC/blob/main/labs/03-Assignment2-CUDA/Assignment2.md}{GitHub}.
+Our scripts and modified source code can be found in our \href{https://github.com/Edelwy/HPC}{\textbf{GitHub} repository}. \href{https://chakazul.github.io/lenia.html}{\textbf{Lenia}} is a continuous cellular automaton generalising the Game of Life. Each iteration convolves the world grid with a ring kernel and applies a Gaussian growth function.
+
+\section{Experimenting With Optimizations}
+
+\subsection{Base}
+
+While the base level provided in the repository, it is not very efficient.
+It iterates over the world \textbf{twice} for each step uses inefficient operations occasionally. We performed two optimizations utilizing single core CPU and one multithreaded via OpenMP before implementing the CUDA version.
+
+\subsection{Optimized Version}
+
+Before attempting parallelization it makes sense to optimize the sequential code.
+By joining the contents of convolve2d into the loop inside \texttt{evolve\_lenia} we no longer iterate throught the entire grid twice for each step of the evolution. By optimizing the wrapping to use if statements instead of computing the modulo of the index, we can also improve the performance. Another area of improvement is the \textbf{double buffering} of the world, which eliminated the need for storing tge intermediate result of the convolution and the adding it to the main world buffer.
+Instead, the world buffer is duplicated and changes are written directly to the second buffer. After each step, the buffers are swapped.
+
+\subsection{Novoid}
+
+The final optimization of the CPU based algorithm performs a quick check before starting each step, which determines the \textbf{'active region'} of the world, where there exists a non-zero value. Any empty areas will be skipped, which reduces the time further.It is worth noting that this approach is, unlike the previous optimizations, not universal. This optimization will only result in an improvement when dealing with a scarecely populated world. The overhead of the search may even increase the processing time in a densely populated world.
+
+\subsection{OpenMP}
+
+These convolutions can be computed in parellel as they are independent from each other.This can be done simply with a \texttt{pragma omp parallel for collapse(2)}
+before the first for-loop. This was also done for the \texttt{novoid} version.
+
+\subsection{CUDA}
+
+The CUDA implementation takes the first optimized version as basis. The work runs in a \texttt{convolutionStep} kernel over a 2D grid of $n\times n$ blocks. The ring weights are copied only once into \textbf{constant memory}, and each block cooperatively loads its tile plus the convolution halo into \textbf{shared memory} so the inner loops read mostly from fast on-chip storage instead of global memory. 
+
+\section{Comparing Execution times}
+
+The algorithms that ran on a \textbf{CPU node} with a \textbf{single thread} are the basic (\texttt{base}), the optimized (\texttt{opt}) and the empty regions skipping one (\texttt{novoid}). The OpenMP parallelization (\texttt{omp}) was executed on a \textbf{CPU node} using \textbf{32 threads}. The CUDA implementation (\texttt{opt\_gpu}) was executed on a \textbf{GPU node} with a single GPU with block size $16$.
+
+The first table lists the \textbf{execution time in seconds}. Each algorithm was tested 5 times on 100 steps for different grid sizes which can be seen below. The base algorithm on grid size 4096 was run only once due to the long execution time. The slowest execution time is marked with red and the fastest with green.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|r|r|r|r|r|r|} \hline
+        \cellcolor{blue!20}\textbf{Size} & \cellcolor{blue!20}\texttt{base} & \cellcolor{blue!20}\texttt{opt} & \cellcolor{blue!20}\texttt{novoid} & \cellcolor{blue!20}\texttt{omp} & \cellcolor{blue!20}\texttt{novoid\_omp} & \cellcolor{blue!20}\texttt{opt\_gpu} \\ \hline
+        \texttt{256}  & \cellcolor{red!20}19.646  & 4.911   & 1.629   & 0.321  & 0.215 & \cellcolor{green!20}0.217  \\ \hline
+        \texttt{512}  & \cellcolor{red!20}78.187  & 19.267  & 5.797   & 0.846  & 0.440 & \cellcolor{green!20}0.406  \\ \hline
+        \texttt{1024} & \cellcolor{red!20}312.362 & 76.713  & 22.987  & 2.874  & 1.339 & \cellcolor{green!20}0.607  \\ \hline
+        \texttt{2048} & \cellcolor{red!20}1248.073 & 307.526 & 91.992  & 10.972 & 4.765 & \cellcolor{green!20}2.056  \\ \hline
+        \texttt{4096} & \cellcolor{red!20}4996.188 & 1569.356 & 459.321 & 52.081 & 21.766 & \cellcolor{green!20}7.085  \\ \hline
+    \end{tabular}
+    \caption{Average execution time (s) per method and grid size.}
+\end{table}
+
+The second table shows the speed-up of the CPU based algorithms compared to the GPU one. The biggest speed-up is denoted with green and smallest with red. One can also see other mentioned speed-ups directly calculated in \texttt{analysis.ipynb} notebook.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|r|r|r|r|r|} \hline
+        \cellcolor{blue!20}\textbf{Size} & \cellcolor{blue!20}\texttt{base} & \cellcolor{blue!20}\texttt{opt} & \cellcolor{blue!20}\texttt{novoid} & \cellcolor{blue!20}\texttt{omp} & \cellcolor{blue!20}\texttt{novoid\_omp} \\ \hline
+        \texttt{256}  & \cellcolor{green!20}90.369  & 22.589  & 7.492 & 3.241 & \cellcolor{red!20}0.991  \\ \hline
+        \texttt{512}  & \cellcolor{green!20}192.389 & 47.408  & 14.265 & 2.081 & \cellcolor{red!20}1.084  \\ \hline
+        \texttt{1024} & \cellcolor{green!20}514.769 & 126.423 & 37.882 & 4.737 & \cellcolor{red!20}2.206  \\ \hline
+        \texttt{2048} & \cellcolor{green!20}607.039 & 149.575 & 44.743 & 5.336 & \cellcolor{red!20}2.318  \\ \hline
+        \texttt{4096} & \cellcolor{green!20}705.198 & 221.51 & 64.832 & 7.351 & \cellcolor{red!20}3.072  \\ \hline
+    \end{tabular}
+    \caption{Speed-up of GPU vs each CPU method.}
+\end{table}
+
+As expected the \textit{Python} based algorithm performed the worst with execution times being over a minute for all pictures except the $256\times 256$ one. It is interasting to note that the $4094\times4094$ grid took over an hour for the base implementation and only $7.35$ seconds with CUDA. However even polishing the single threded CPU version was enough to bring it down to under $8$ minutes. 
+
+The optimized algorithm finished four times faster for almost all cases. The further optimization was three times as fast as the previous one. The OpenMP paralellelization speed-up became more noticable with larger sizes, which makes sense as synchronization overhead is not as detrimental. Same goes for the CUDA implementation. 
+
+We also experimented with different block sizes for $n\times n$ blocks. We tested block sizes $32$, $16$ and $8$. The table can be found in \texttt{analysis.ipynb} as well. The measured runtimes were higher than those obtained previously and very inconsistent, which may be attributed to increased cluster load and running without reservation might have caused sharing GPU node with other intensive tasks. It was impossible to determine whether block size $32$ or $16$ would be better. 
+
+\end{document}

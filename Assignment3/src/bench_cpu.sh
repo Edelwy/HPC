@@ -9,7 +9,7 @@
 #SBATCH --reservation=fri
 #SBATCH --job-name=lennard-jones
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=8
 #SBATCH --hint=nomultithread
 #SBATCH --time=08:00:00
 #SBATCH --output=lennard-jones_%j.log
@@ -20,9 +20,9 @@ module load CUDA
 extended=1
 reps=1
 outfile=results.csv
-methods=( base opt )
-sizes=( 1000 )
-steps=( 1000 )
+methods=( base opt opt2 omp )
+sizes=( 100 4000 )
+steps=( 100 2000 )
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--extended) extended=1; shift ;;
@@ -66,6 +66,7 @@ for step in "${steps[@]}"; do
 		echo "  trial ${run}/${reps}"
 
 		#RUN
+                export OMP_NUM_THREADS=8
 		out=$(srun ./lj.out "${size}" "${step}")
 		echo $out
 

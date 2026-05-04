@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <omp.h>
 
 // Include CUDA headers
 // #include <cuda_runtime.h>
@@ -60,7 +61,7 @@ double compute_ke(const Particle *particles, unsigned int n) {
 }
 
 int initialize_particles(Particle *particles, unsigned int n, double box_size, double placement_fraction, unsigned int seed, double temperature) {
-    
+
     srand(seed);
     unsigned int n_side = (unsigned int)ceil(sqrt((double)n));
     double placement_size = placement_fraction * box_size;
@@ -79,7 +80,7 @@ int initialize_particles(Particle *particles, unsigned int n, double box_size, d
 
         particles[k].vx = 2.0 * random_double() - 1.0;
         particles[k].vy = 2.0 * random_double() - 1.0;
-        
+
         mean_vx += particles[k].vx;
         mean_vy += particles[k].vy;
     }
@@ -133,7 +134,6 @@ void wrap_positions(Particle *particles, unsigned int n, double box_size) {
 
 // shift potential to ensure it goes to zero at the cutoff distance, improving energy conservation
 double compute_v_shift(void) {
-//    return 4.0 * EPSILON * (pow(SIGMA / R_CUT, 12.0) - pow(SIGMA / R_CUT, 6.0));
     return 4.0 * EPSILON * (pow(SIGMA / R_CUT, 12.0) - pow(SIGMA / R_CUT, 6.0));
 }
 
@@ -147,15 +147,15 @@ double compute_forces(Particle *particles, unsigned int n, double box_size, Part
     double v_shift = compute_v_shift();
 
     unsigned int ParticlePairCount = 0;
-//    unsigned int ParticlePairCountMax =  n * (n - 1) / 2;
-//    ParticlePair *pairs = (ParticlePair*) malloc(ParticlePairCountMax * sizeof(ParticlePair));
     double radius2 = R_CUT*R_CUT;
 
     for (unsigned int i = 0; i < n; ++i) {
         for (unsigned int j = i+1; j < n; ++j) {
+/*
             if (j == i) {
                 continue;
             }
+*/
             Particle *pi = &particles[i];
             Particle *pj = &particles[j];
 
@@ -163,33 +163,22 @@ double compute_forces(Particle *particles, unsigned int n, double box_size, Part
             double dx = pi->x - pj->x;
             double dy = pi->y - pj->y;
 
-            dx -= box_size * nearbyint(dx / box_size);
-            dy -= box_size * nearbyint(dy / box_size);
-            pairs[ParticlePairCount].dx = dx;
-            pairs[ParticlePairCount].dy = dy;
-
             // compute Lennard-Jones force and potential energy contribution if particles are within the cutoff distance
             pairs[ParticlePairCount].rr = dx * dx + dy * dy;
             if (pairs[ParticlePairCount].rr >= radius2 || pairs[ParticlePairCount].rr == 0.0) {
                 continue;
             }
 
+
+            dx -= box_size * nearbyint(dx / box_size);
+            dy -= box_size * nearbyint(dy / box_size);
+            pairs[ParticlePairCount].dx = dx;
+            pairs[ParticlePairCount].dy = dy;
+
+
             pairs[ParticlePairCount].particleA = pi;
             pairs[ParticlePairCount].particleB = pj;
             ParticlePairCount++;
-/*
-            double sr = SIGMA / r;
-
-            double fij = 24.0 * EPSILON * (2.0 * pow(sr, 12.0) - pow(sr, 6.0)) / r;
-            double fx = fij * dx / r;
-            double fy = fij * dy / r;
-
-            pi->fx += fx;
-            pi->fy += fy;
-
-            double vij = 4.0 * EPSILON * (pow(sr, 12.0) - pow(sr, 6.0)) - v_shift;
-            pe += 0.5 * vij;
-*/
         }
     }
 
@@ -199,13 +188,15 @@ double compute_forces(Particle *particles, unsigned int n, double box_size, Part
         Particle *pi = pairs[i].particleA;
         Particle *pj = pairs[i].particleB;
 
-        double r = sqrt(pairs[i].rr);	//TODO: get ride of sqrt
-
-        double sr = SIGMA / r;
-
-        double fij = 24.0 * EPSILON * (2.0 * pow(sr, 12.0) - pow(sr, 6.0)) / r;
-        double fx = fij * pairs[i].dx / r;
-        double fy = fij * pairs[i].dy / r;
+        double r2 = pairs[i].rr;
+        double inv_r2 = 1.0 / r2;
+        double sig2_over_r2 = (SIGMA * SIGMA) * inv_r2;
+        double sr6 = sig2_over_r2 * sig2_over_r2 * sig2_over_r2;
+        double sr12 = sr6 * sr6;
+        double force_factor = 24.0 * EPSILON * (2.0 * sr12 - sr6) * inv_r2;
+        double fx = force_factor * pairs[i].dx;
+        double fy = force_factor * pairs[i].dy;
+        double vij = 4.0 * EPSILON * (sr12 - sr6) - v_shift;
 
         pi->fx += fx;
         pi->fy += fy;
@@ -213,21 +204,8 @@ double compute_forces(Particle *particles, unsigned int n, double box_size, Part
         pj->fx -= fx;
         pj->fy -= fy;
 
-        double vij = 4.0 * EPSILON * (pow(sr, 12.0) - pow(sr, 6.0)) - v_shift;
-//        pe += 0.5 * vij;
         pe += vij;
-/*
-        double dx = pi->x - pj->x;
-        double dy = pi->y - pj->y;
-
-        dx -= box_size * nearbyint(dx / box_size);
-        dy -= box_size * nearbyint(dy / box_size);
-        pairs[ParticlePairCount].dx = dx;
-        pairs[ParticlePairCount].dy = dy;
-*/
     }
-
-//    free(pairs);
     return pe;
 }
 
@@ -261,13 +239,11 @@ SimulationResult run_simulation(Particle *particles, unsigned int n, unsigned in
     unsigned int ParticlePairCountMax =  n * (n - 1) / 2;
     ParticlePair *pairs = (ParticlePair*) malloc(ParticlePairCountMax * sizeof(ParticlePair));
 
-    
     SimulationResult out;
     out.start_potential= compute_forces(particles, n, box_size, pairs);
     out.start_kinetic = compute_ke(particles, n);
     out.start_total = out.start_kinetic + out.start_potential;
 
-    
 #if GENERATE_GIF
     ge_GIF *gif = NULL;
 
@@ -279,7 +255,6 @@ SimulationResult run_simulation(Particle *particles, unsigned int n, unsigned in
         ge_add_frame(gif, FRAME_DELAY);
     }
 #endif
-
 
     for (unsigned int step = 0; step < nsteps; step++) {
         out.final_potential = leapfrog_step(particles, n, box_size, pairs);
@@ -295,7 +270,6 @@ SimulationResult run_simulation(Particle *particles, unsigned int n, unsigned in
             );
         }
 
-    
 #if GENERATE_GIF
         if (gif && FRAME_EVERY > 0 && (step + 1) % FRAME_EVERY == 0) {
             render_frame_gif(gif, particles, n, box_size);

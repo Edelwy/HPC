@@ -5,10 +5,12 @@ CC = nvcc
 LDLIBS = -lm
 CFLAGS = -Wno-deprecated-gpu-targets -gencode=arch=compute_70,code=sm_70 -O3 -Xcompiler --openmp,-Wall
 
-SRC=src
+#SRC=src
+SRC=.
 
 # Source files
-SRCS=$(wildcard $(SRC)/*.cu)
+#SRCS=$(wildcard $(SRC)/*.cu)
+SRCS=$(wildcard $(SRC)/lennard-jones.cu)
 SRCS+=$(wildcard $(SRC)/*.c)
 
 # Header files

@@ -11,7 +11,7 @@ extern "C" {
 #define R_CUT 2.5
 #define JITTER 0.05
 
-#define GENERATE_GIF 0
+#define GENERATE_GIF 1
 #define FRAME_WIDTH 800
 #define FRAME_HEIGHT 800
 #define FRAME_EVERY 5
@@ -29,6 +29,14 @@ typedef struct {
     double fx;
     double fy;
 } Particle;
+
+typedef struct {
+    Particle* particleA;
+    Particle* particleB;
+    double dx;
+    double dy;
+    double rr;
+} ParticlePair;
 
 typedef struct {
     unsigned int n;

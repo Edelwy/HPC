@@ -14,15 +14,21 @@
 #SBATCH --time=08:00:00
 #SBATCH --output=lennard-jones_%j.log
 
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --nodes=1
+
 #LOAD MODULES 
 module load CUDA
 
 extended=1
 reps=1
 outfile=results.csv
-methods=( base opt opt2 omp )
-sizes=( 100 4000 )
-steps=( 100 2000 )
+methods=( base opt opt2 omp omp3 cuda )
+#methods=( omp3 cuda )
+sizes=( 1000 2000 4000 8000 )
+steps=( 5 )
+cuda_blocksizes=( 8 16 32 )
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--extended) extended=1; shift ;;
@@ -48,43 +54,47 @@ while [ $# -gt 0 ]; do
 	esac
 done
 
-echo "Run,Size,NSteps,Method,Time" > "${outfile}"
+echo "Run,Size,NSteps,Method,Time,Blocksize" > "${outfile}"
 for method in "${methods[@]}"; do
+	if [[ ${method} == cuda* ]]; then
+		blocksizes=("${cuda_blocksizes[@]}")
+	else
+		blocksizes=( 0 )
+	fi
 
+for blocksize in "${blocksizes[@]}"; do
 	echo Testing for ${method}
 
 	#LINK
 	ln -sf lennard-jones_${method}.cu lennard-jones.cu
 
 	#BUILD
-	make -B
+	make -B BLOCKSIZE=${blocksize}
 
-for size in "${sizes[@]}"; do
-for step in "${steps[@]}"; do
 
-	for ((run = 1; run <= reps; run++)); do
-		echo "  trial ${run}/${reps}"
+	for size in "${sizes[@]}"; do
+		for step in "${steps[@]}"; do
+			for ((run = 1; run <= reps; run++)); do
+				echo "  trial ${run}/${reps}"
+				#RUN
+				echo "RUNNING Method: ${method} run: ${run} size: ${size} steps: ${step} blocksize: ${blocksize}"
+		                export OMP_NUM_THREADS=8
+				out=$(srun ./lj.out "${size}" "${step}")
+				echo $out
 
-		#RUN
-                export OMP_NUM_THREADS=8
-		out=$(srun ./lj.out "${size}" "${step}")
-		echo $out
+				#SAVE
+		#		echo ${out##*steps: }
+				line="${run},${size},${step},${method},${blocksize},${out##*steps: }"
+				echo "${line}" >> "${outfile}"
 
-		#SAVE
-#		echo ${out##*steps: }
-		line="${run},${size},${step},${method},${out##*steps: }"
-		echo "${line}" >> "${outfile}"
-
-		#GIF / TXT 
-		if [ "${extended}" -eq 1 ]; then
-			if [ -e simulation.gif ]; then
-				mv simulation.gif "lj_${method}_${size}_${step}_run${run}.gif"
-			fi
-#			if [ -e final_state.txt ]; then
-#				mv final_state.txt "final_state_${method}_${size}_run${run}.txt"
-#			fi
-		fi
+				#GIF / TXT 
+				if [ "${extended}" -eq 1 ]; then
+					if [ -e simulation.gif ]; then
+						mv simulation.gif "lj_${method}_${size}_${step}_${blocksize}_run${run}.gif"
+					fi
+				fi
+			done
+		done
 	done
-done
 done
 done

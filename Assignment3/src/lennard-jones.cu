@@ -1,1 +1,1 @@
-lennard-jones_omp.cu
+lennard-jones_cuda.cu

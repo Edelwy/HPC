@@ -12,7 +12,9 @@
 #SBATCH --output=lenia_verify_%j.log
 
 set -euo pipefail
-cd "$(dirname "$0")/.." || exit 1
+# Slurm copies the script to a spool dir, so $0 isn't the real path.
+# SLURM_SUBMIT_DIR is where sbatch was invoked (submit_all.sh cd's into src/ first).
+cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}" || exit 1
 
 module load OpenMPI
 
@@ -20,14 +22,15 @@ N=256
 STEPS=20    # short — we just need agreement, not long-time stability
 
 echo "=== verify: N=${N} steps=${STEPS} ==="
+echo "cwd=$(pwd)  (Makefile present: $( [ -f Makefile ] && echo yes || echo NO ))"
 
 for method in seq row block row_wide; do
     echo "-- ${method}"
     make -B METHOD="${method}"
     if [ "${method}" = "seq" ]; then
-        srun --ntasks=1 ./lenia.out "${N}" --steps "${STEPS}" --final "final_${method}.txt"
+        ./lenia.out "${N}" --steps "${STEPS}" --final "final_${method}.txt"
     else
-        srun ./lenia.out "${N}" --steps "${STEPS}" --final "final_${method}.txt" \
+        mpirun --mca pml ob1 -np "${SLURM_NTASKS}" ./lenia.out "${N}" --steps "${STEPS}" --final "final_${method}.txt" \
             $( [ "${method}" = "row_wide" ] && echo "--halo 2" )
     fi
 done

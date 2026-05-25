@@ -5,6 +5,7 @@
 
 set -euo pipefail
 cd "$(dirname "$0")/.." || exit 1
+SRC_DIR="$PWD"
 mkdir -p ../results
 
 # Pick reps per size: bigger grids are slow; mirror Assignment 2's pragmatic choice.
@@ -18,7 +19,7 @@ reps_for() {
 }
 
 # Verification job is the dependency root.
-prev=$(sbatch --parsable benchmarks/verify.sh)
+prev=$(sbatch --parsable --chdir="${SRC_DIR}" benchmarks/verify.sh)
 echo "Queued verify: ${prev}"
 
 submit() {
@@ -35,7 +36,7 @@ submit() {
     fi
     local args=( --method "${m}" --size "${s}" --reps "${r}" --outfile "${out}" )
     [ -n "${h}" ] && args+=( --halo "${h}" )
-    local sb=( --parsable --dependency=afterok:"${prev}" --ntasks="${p}" --nodes="${n}" )
+    local sb=( --parsable --chdir="${SRC_DIR}" --dependency=afterok:"${prev}" --ntasks="${p}" --nodes="${n}" )
     [ "${n}" -gt 1 ] && sb+=( --ntasks-per-node=$(( p / n )) )
     prev=$(sbatch "${sb[@]}" benchmarks/bench.sh "${args[@]}")
     echo "Queued ${m} N=${s} P=${p} nodes=${n} halo=${h:-1} -> ${prev}  (${out})"

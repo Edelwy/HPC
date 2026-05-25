@@ -16,8 +16,9 @@
 
 set -euo pipefail
 
-# Resolve src/ from script location (script lives in src/benchmarks/).
-cd "$(dirname "$0")/.." || exit 1
+# Slurm copies the script to a spool dir, so $0 isn't the real path.
+# SLURM_SUBMIT_DIR is where sbatch was invoked (submit_all.sh cd's into src/ first).
+cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}" || exit 1
 
 method=row
 size=512
@@ -41,6 +42,7 @@ done
 module load OpenMPI
 
 echo "=== bench: method=${method} size=${size} reps=${reps} procs=${SLURM_NTASKS:-1} nodes=${SLURM_JOB_NUM_NODES:-1} halo=${halo:-1} ==="
+echo "cwd=$(pwd)  (Makefile present: $( [ -f Makefile ] && echo yes || echo NO ))"
 
 make -B METHOD="${method}"
 
@@ -59,9 +61,9 @@ extra_args=()
 for ((run = 1; run <= reps; run++)); do
     echo "  trial ${run}/${reps}"
     if [ "${method}" = "seq" ]; then
-        out=$(srun --ntasks=1 ./lenia.out "${size}" "${extra_args[@]}") || true
+        out=$(./lenia.out "${size}" "${extra_args[@]}") || true
     else
-        out=$(srun ./lenia.out "${size}" "${extra_args[@]}") || true
+        out=$(mpirun --mca pml ob1 -np "${procs}" ./lenia.out "${size}" "${extra_args[@]}") || true
     fi
     echo "$out"
 

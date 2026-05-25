@@ -72,12 +72,11 @@ Implement a parallel Lenia simulation in C/C++ using MPI that evolves the initia
 
 ### Code organization
 - `Makefile` -> Project build rules.
-- `run_lenia.sh` -> Sbatch script to acquire resources on the Arnes cluster, build and run the Lenia simulator.
-- `src/`
-    - `main.c` -> Main project file.
-    - `lenia.c` -> Lenia simulation code.
-    - `orbium.c` -> Code for placement of [Orbium creatures](https://ar5iv.labs.arxiv.org/html/2005.03742/assets/fig3a1.png).
-    - `gifenc.c` -> Code for generating gif animations; taken from [here](https://github.com/lecram/gifenc).
+- `main.c` -> Main project file.
+- `lenia.c` -> Lenia simulation code.
+- `orbium.c` -> Code for placement of [Orbium creatures](https://ar5iv.labs.arxiv.org/html/2005.03742/assets/fig3a1.png).
+- `gifenc.c` -> Code for generating gif animations; taken from [here](https://github.com/lecram/gifenc).
+- `benchmarks` -> Sbatch scripts to acquire resources on the Arnes cluster, build and test the Lenia simulator.
 
 
 **Basic tasks (for grades 6-8):**
@@ -87,7 +86,6 @@ Implement a parallel Lenia simulation in C/C++ using MPI that evolves the initia
 - Compute the speed-up $S=t_s/t_p$ of your algorithm; $t_s$ is the execution time of the sequential algorithm, and $t_p$ is the execution time of the parallel algorithm.
 - Support the option of generating the animation. Use collectives to gather results at the root process, which then generates the GIF.
 - Write a short report (1-2 pages) summarising your solution and presenting the measurements performed on the cluster. The main focus should be presenting and explaining the time measurements and speed-ups.
-- Hand in your code and the report to ucilnica through the appropriate form by the specified deadline (**26. 5. 2026**) and defend your code and report during labs in the same week.
 
 **Bonus tasks (for grades 9-10):**
 

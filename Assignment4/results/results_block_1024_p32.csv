@@ -1,0 +1,6 @@
+Run,Size,Method,Procs,Nodes,Halo,Time
+1,1024,block,32,1,1,2.043
+2,1024,block,32,1,1,2.047
+3,1024,block,32,1,1,2.045
+4,1024,block,32,1,1,2.045
+5,1024,block,32,1,1,2.044

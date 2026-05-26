@@ -1,0 +1,4 @@
+Run,Size,Method,Procs,Nodes,Halo,Time
+1,2048,seq,1,1,1,309.655
+2,2048,seq,1,1,1,312.959
+3,2048,seq,1,1,1,313.649

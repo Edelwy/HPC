@@ -8,7 +8,7 @@ Our scripts and modified source code can be found in our \href{https://github.co
 
 \section{Implementation}
 
-First we improved the initial \textbf{sequentional version}, analogously to what we did \href{https://github.com/Edelwy/HPC/blob/main/Assignment2/src/src/lenia_opt.cu}{Assignment 2}. The improved verison was three times faster than the one provided and we use the improved one as the basis for all our speed comparisons. 
+First we improved the initial \textbf{sequential version}, analogously to what we did \href{https://github.com/Edelwy/HPC/blob/main/Assignment2/src/src/lenia_opt.cu}{Assignment 2}. The improved verison was three times faster than the one provided and we use the improved one as the basis for all our speed comparisons. 
 
 Then we implemented three \textbf{MPI} versions. Every rank runs the same program, but inside the evolution function each rank owns a piece of the grid and communicates \textbf{halos}. In the first version the piece of the grid is a \textbf{row}. We compute the row partition by dividing the number of rows among the processes. Any remainder is distributed by assigning one additional row to the lowest ranks until all remaining rows have been allocated. We send the strips of the world to rank via \texttt{MPI\_Scatterv}, we transfer halos via \texttt{MPI\_Sendrecv} and gather the strips at the end via \texttt{MPI\_Gatherv}.
 

@@ -10,6 +10,7 @@
 #define LENIA_KERNEL_SIGMA 0.15
 
 double gauss(double x, double mu, double sigma);
+
 double growth_lenia(double u);
 
 /* Builds a normalised ring kernel of side `size` into K (size*size doubles). */

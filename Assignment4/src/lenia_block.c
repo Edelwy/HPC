@@ -64,9 +64,6 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
     const int R = (int)kernel_size / 2;
 
     if ((int)rows % dims[0] != 0 || (int)cols % dims[1] != 0) {
-        if (rank == 0) fprintf(stderr,
-            "lenia_block: grid %ux%u must divide evenly by process grid %dx%d\n",
-            rows, cols, dims[0], dims[1]);
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
@@ -76,10 +73,6 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
     const int my_col0    = coords[1] * local_cols;
 
     if (local_rows < R || local_cols < R) {
-        if (rank == 0) fprintf(stderr,
-            "lenia_block: local block %dx%d smaller than kernel radius %d; "
-            "use lenia_row for this (N,P) combination\n",
-            local_rows, local_cols, R);
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
 

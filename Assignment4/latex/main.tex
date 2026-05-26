@@ -4,6 +4,113 @@
 \begin{document}
 \maketitle
 
-Our scripts and modified source code can be found in our \href{https://github.com/Edelwy/HPC}{\textbf{GitHub} repository}. \href{https://chakazul.github.io/lenia.html}{\textbf{Lenia}} is a continuous cellular automaton generalising the Game of Life. 
+Our scripts and modified source code can be found in our \href{https://github.com/Edelwy/HPC}{\textbf{GitHub} repository}. \href{https://chakazul.github.io/lenia.html}{\textbf{Lenia}} is a continuous cellular automaton generalising the Game of Life. A more detailed report is available in the repository.
+
+\section{Implementation}
+
+First we improved the initial \textbf{sequentional version}, analogously to what we did \href{https://github.com/Edelwy/HPC/blob/main/Assignment2/src/src/lenia_opt.cu}{Assignment 2}. The improved verison was three times faster than the one provided and we use the improved one as the basis for all our speed comparisons. 
+
+Then we implemented three \textbf{MPI} versions. Every rank runs the same program, but inside the evolution function each rank owns a piece of the grid and communicates \textbf{halos}. In the first version the piece of the grid is a \textbf{row}. We compute the row partition by dividing the number of rows among the processes. Any remainder is distributed by assigning one additional row to the lowest ranks until all remaining rows have been allocated. We send the strips of the world to rank via \texttt{MPI\_Scatterv}, we transfer halos via \texttt{MPI\_Sendrecv} and gather the strips at the end via \texttt{MPI\_Gatherv}.
+
+We implemented a version that uses a \textbf{block distribution} as well. Here we had to manually send data to each block using \texttt{MPI\_Send}. We created the block using the \texttt{MPI\_Dims\_create} in-built method. Then we created a Cartesian-coordinate communicator with modulo wrap-around on both dimensions using \texttt{MPI\_Cart\_create}. We also used a couple other methods for obtaining coordinates and neighbours. In the block distribution version we implemented a \textbf{custom MPI datatype} in order to improve the transaction of left and right halos.
+
+Finally, we tried to \textbf{reduce communication overhead} by doing more computation. We tested whether introducing bigger paddings and then making sequential substeps would improve or slow down our algorithm. We implemented a new version of the row distributed method, where it takes in a parameter $K$ which represents the number of substeps that should be done sequentially. 
+
+\section{Results}
+
+Below are the execution times in seconds averaged over 5 runs for the \textbf{row-rank} implementation and \textbf{block-rank} implementation. We did not compute size $128 \times 128$ on $32$ ranks because each rank needs 13 rows of halo above and below and the owned strip would be thinner than the halo width causing overlap.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|r|r|r|r|r|r|} \hline
+        \cellcolor{blue!10}\textbf{Size} & \multicolumn{6}{c|}{\cellcolor{blue!10}\textbf{Ranks}} 
+        \\ \cline{2-7}
+        \cellcolor{blue!10} & \cellcolor{blue!20}\texttt{seq} & \cellcolor{blue!20}\texttt{1} & \cellcolor{blue!20}\texttt{2} & \cellcolor{blue!20}\texttt{4} & \cellcolor{blue!20}\texttt{16} & \cellcolor{blue!20}\texttt{32} \\ \hline
+        \texttt{128}  & \cellcolor{red!20}1.179   & 1.143   & 0.595   & 0.362   & \cellcolor{green!20}0.136  & ---     \\ \hline
+        \texttt{512}  & \cellcolor{red!20}19.486  & 19.307  & 9.216   & 5.558   & 1.242   & \cellcolor{green!20}0.712  \\ \hline
+        \texttt{1024} & \cellcolor{red!20}76.951  & 75.051  & 37.431  & 22.239  & 7.244   & \cellcolor{green!20}2.931  \\ \hline
+        \texttt{2048} & \cellcolor{red!20}312.088 & 294.965 & 147.918 & 73.451  & 19.309  & \cellcolor{green!20}10.291 \\ \hline
+        \texttt{4096} & \cellcolor{red!20}1557.646 & 1587.704 & 790.321 & 392.969 & 96.215  & \cellcolor{green!20}48.492 \\ \hline
+    \end{tabular}
+    \caption{Average execution time (s) for method: \texttt{row}.}
+\end{table}
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|r|r|r|r|r|r|} \hline
+        \cellcolor{blue!10}\textbf{Size} & \multicolumn{6}{c|}{\cellcolor{blue!10}\textbf{Ranks}} 
+        \\ \cline{2-7}
+        \cellcolor{blue!10} & \cellcolor{blue!20}\texttt{seq} & \cellcolor{blue!20}\texttt{1} & \cellcolor{blue!20}\texttt{2} & \cellcolor{blue!20}\texttt{4} & \cellcolor{blue!20}\texttt{16} & \cellcolor{blue!20}\texttt{32} \\ \hline
+        \texttt{128}  & \cellcolor{red!20}1.179   & 1.012   & 0.509   & 0.263   & 0.070   & \cellcolor{green!20}0.039  \\ \hline
+        \texttt{512}  & \cellcolor{red!20}19.486  & 16.128  & 8.072   & 4.145   & 1.032   & \cellcolor{green!20}0.527  \\ \hline
+        \texttt{1024} & \cellcolor{red!20}76.951  & 64.487  & 32.263  & 16.404  & 4.112   & \cellcolor{green!20}2.045  \\ \hline
+        \texttt{2048} & \cellcolor{red!20}312.088 & 258.114 & 129.098 & 64.593  & 16.378  & \cellcolor{green!20}8.112  \\ \hline
+        \texttt{4096} & \cellcolor{red!20}1557.646 & 1032.912 & 516.593 & 258.570 & 66.632  & \cellcolor{green!20}33.287 \\ \hline
+    \end{tabular}
+    \caption{Average execution time (s) for method: \texttt{block}.}
+\end{table}
+
+As one can see from the above numbers and speed-ups below the \textbf{32-rank version was fastest} in all cases. It outperformed other alternatives even on small grids, which was not necessarily obvious due to communication overhead, however the speed-up increased with grid size. The \textit{MPI} overhead was too small to make the 1-rank version slower than the sequential one, actually, it was slightly faster. This is likely due to minor differences in the inner loop, but the speed-up is negligible. The block grid division slightly outperformed the row division on all accounts. The best speed-up from row to block method was $1.95$ for $128 \times 128$ grid on 16 ranks. The derived data types used in the block-rank method also contribute to the speed-up.
+
+\begin{table}[H]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \begin{tabular}{|l|r|r|r|r|r|} \hline
+            \cellcolor{blue!10}\textbf{Size} & \multicolumn{5}{c|}{\cellcolor{blue!10}\textbf{Ranks}} 
+            \\ \cline{2-6}
+            \cellcolor{blue!10} & \cellcolor{blue!20}\texttt{1} & \cellcolor{blue!20}\texttt{2} & \cellcolor{blue!20}\texttt{4} & \cellcolor{blue!20}\texttt{16} & \cellcolor{blue!20}\texttt{32} \\ \hline
+            \texttt{128}  & \cellcolor{red!20}1.031  & 1.981  & 3.261  & \cellcolor{green!20}8.683  & ---     \\ \hline
+            \texttt{512}  & \cellcolor{red!20}1.009  & 2.114  & 3.506  & 15.689 & \cellcolor{green!20}27.368 \\ \hline
+            \texttt{1024} & \cellcolor{red!20}1.025  & 2.056  & 3.460  & 10.623 & \cellcolor{green!20}26.252 \\ \hline
+            \texttt{2048} & \cellcolor{red!20}1.058  & 2.110  & 4.249  & 16.163 & \cellcolor{green!20}30.327 \\ \hline
+            \texttt{4096} & \cellcolor{red!20}0.981  & 1.971  & 3.964  & 16.189 & \cellcolor{green!20}32.122 \\ \hline
+        \end{tabular}
+        \caption{Speed-up: \texttt{row} (relative to \texttt{seq}).}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \begin{tabular}{|l|r|r|r|r|r|} \hline
+            \cellcolor{blue!10}\textbf{Size} & \multicolumn{5}{c|}{\cellcolor{blue!10}\textbf{Ranks}} 
+            \\ \cline{2-6}
+            \cellcolor{blue!10} & \cellcolor{blue!20}\texttt{1} & \cellcolor{blue!20}\texttt{2} & \cellcolor{blue!20}\texttt{4} & \cellcolor{blue!20}\texttt{16} & \cellcolor{blue!20}\texttt{32} \\ \hline
+            \texttt{128}  & \cellcolor{red!20}1.165  & 2.316  & 4.487  & 16.943 & \cellcolor{green!20}30.236 \\ \hline
+            \texttt{512}  & \cellcolor{red!20}1.208  & 2.414  & 4.701  & 18.889 & \cellcolor{green!20}36.989 \\ \hline
+            \texttt{1024} & \cellcolor{red!20}1.193  & 2.385  & 4.691  & 18.713 & \cellcolor{green!20}37.633 \\ \hline
+            \texttt{2048} & \cellcolor{red!20}1.209  & 2.417  & 4.832  & 19.055 & \cellcolor{green!20}38.471 \\ \hline
+            \texttt{4096} & \cellcolor{red!20}1.508  & 3.015  & 6.024  & 23.377 & \cellcolor{green!20}46.794 \\ \hline
+        \end{tabular}
+        \caption{Speed-up: \texttt{block} (relative to \texttt{seq}).}
+    \end{minipage}
+\end{table}
+
+All the previous versions were tested on \textbf{one node}. We also tested both row and block implementation on \textbf{two nodes} by assigning each node half the processes. For size $1024 \times 1024$ and $4096 \times 4096$ on 16 and 32 processes barely produced any difference. The only difference that was not negligible was for the grid $1024 \times 1024$ on 16 processes which was roughly $12\%$ slower on 2 nodes for row-rank method.
+
+Finally, we tried \textbf{reducing communication overhead} by taking a larger padding and updating it on $K$ steps. We tested this for the two larger cases where it makes most sense due to the size of the halo being quite large for larger $K$ and on the two best-performing rank sizes. This actually made the algorithm slower, with slow-down increasing with the size of $K$. 
+
+\begin{table}[H]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \begin{tabular}{|l|l|r|r|r|r|} \hline
+            \cellcolor{blue!10}\textbf{Size} & \cellcolor{blue!10}\textbf{Ranks} & \multicolumn{4}{c|}{\cellcolor{blue!10}\textbf{K}} \\ \cline{3-6}
+            \cellcolor{blue!10} & \cellcolor{blue!10} & \cellcolor{blue!20}\texttt{1} & \cellcolor{blue!20}\texttt{2} & \cellcolor{blue!20}\texttt{4} & \cellcolor{blue!20}\texttt{8} \\ \hline
+            \cellcolor{blue!20}\texttt{2048} & \cellcolor{blue!20}16 & \cellcolor{green!20}19.49 & 21.12 & 24.96 & \cellcolor{red!20}32.68 \\ \hline
+            \cellcolor{blue!20}\texttt{4096} & \cellcolor{blue!20}32 & \cellcolor{green!20}49.98 & 54.86 & 68.48 & \cellcolor{red!20}108.59 \\ \hline
+        \end{tabular}
+        \caption{Mean time (s) per $K$ on 1 node.}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+            \begin{tabular}{|l|l|r|r|r|r|} \hline
+            \cellcolor{blue!10}\textbf{Size} & \cellcolor{blue!10}\textbf{Ranks} & \multicolumn{4}{c|}{\cellcolor{blue!10}\textbf{K}} \\ \cline{3-6}
+            \cellcolor{blue!10} & \cellcolor{blue!10} & \cellcolor{blue!20}\texttt{1} & \cellcolor{blue!20}\texttt{2} & \cellcolor{blue!20}\texttt{4} & \cellcolor{blue!20}\texttt{8} \\ \hline
+            \cellcolor{blue!20}\texttt{2048} & \cellcolor{blue!20}16 & \cellcolor{green!20}21.21 & 22.56 & 25.30 & \cellcolor{red!20}33.04 \\ \hline
+            \cellcolor{blue!20}\texttt{4096} & \cellcolor{blue!20}32 & \cellcolor{green!20}50.73 & 53.94 & 68.50 & \cellcolor{red!20}90.17 \\ \hline
+            \end{tabular}
+        \caption{Mean time (s) per $K$ on 2 nodes.}
+    \end{minipage}
+\end{table}
 
 \end{document}

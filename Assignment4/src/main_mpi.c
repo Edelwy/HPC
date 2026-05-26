@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
     double *world = evolve_lenia(n, n, steps, DT, KERNEL_SIZE, orbiums, NUM_ORBIUMS, &opts);
     double t1 = MPI_Wtime();
 
+    /* We want the slowest time, so all ranks send time to rank 0, max returned. */
     double local = t1 - t0, elapsed;
     MPI_Reduce(&local, &elapsed, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     if (rank == 0) printf("Execution time: %.3f\n", elapsed);

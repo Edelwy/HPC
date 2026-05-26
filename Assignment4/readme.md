@@ -238,3 +238,621 @@ Very similar implementation to the original row version. Firslty, we abort this 
 Everywhere in the sending and recieving `H` is used instead of the radius. Then for the evolution loop we create another **substeps loop** where we evolve it like in the sequential version and only update it after `K` substeps have passed.
 
 ## Results
+
+Below are the execution times in seconds averaged over 5 runs for the **row-rank** implementation and **block-rank** implementation. We did not compute size `128 × 128` on `32` ranks because each rank needs 13 rows of halo above and below, and the owned strip would be thinner than the halo width, causing overlap.
+
+<table><tr><td style='vertical-align: top; padding: 5px;'><div style='text-align: left; font-weight: bold;'>Average execution time (s) for method: row</div><style type="text/css">
+#T_0c72e_row0_col0, #T_0c72e_row1_col0, #T_0c72e_row2_col0, #T_0c72e_row3_col0, #T_0c72e_row4_col1 {
+  background-color: darkred;
+}
+#T_0c72e_row0_col4, #T_0c72e_row1_col5, #T_0c72e_row2_col5, #T_0c72e_row3_col5, #T_0c72e_row4_col5 {
+  background-color: darkgreen;
+}
+</style>
+<table id="T_0c72e">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_0c72e_level0_col0" class="col_heading level0 col0" >seq</th>
+      <th id="T_0c72e_level0_col1" class="col_heading level0 col1" >1</th>
+      <th id="T_0c72e_level0_col2" class="col_heading level0 col2" >2</th>
+      <th id="T_0c72e_level0_col3" class="col_heading level0 col3" >4</th>
+      <th id="T_0c72e_level0_col4" class="col_heading level0 col4" >16</th>
+      <th id="T_0c72e_level0_col5" class="col_heading level0 col5" >32</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Size</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+      <th class="blank col5" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_0c72e_level0_row0" class="row_heading level0 row0" >128</th>
+      <td id="T_0c72e_row0_col0" class="data row0 col0" >1.18</td>
+      <td id="T_0c72e_row0_col1" class="data row0 col1" >1.14</td>
+      <td id="T_0c72e_row0_col2" class="data row0 col2" >0.6</td>
+      <td id="T_0c72e_row0_col3" class="data row0 col3" >0.36</td>
+      <td id="T_0c72e_row0_col4" class="data row0 col4" >0.14</td>
+      <td id="T_0c72e_row0_col5" class="data row0 col5" ></td>
+    </tr>
+    <tr>
+      <th id="T_0c72e_level0_row1" class="row_heading level0 row1" >512</th>
+      <td id="T_0c72e_row1_col0" class="data row1 col0" >19.49</td>
+      <td id="T_0c72e_row1_col1" class="data row1 col1" >19.31</td>
+      <td id="T_0c72e_row1_col2" class="data row1 col2" >9.22</td>
+      <td id="T_0c72e_row1_col3" class="data row1 col3" >5.56</td>
+      <td id="T_0c72e_row1_col4" class="data row1 col4" >1.24</td>
+      <td id="T_0c72e_row1_col5" class="data row1 col5" >0.71</td>
+    </tr>
+    <tr>
+      <th id="T_0c72e_level0_row2" class="row_heading level0 row2" >1024</th>
+      <td id="T_0c72e_row2_col0" class="data row2 col0" >76.95</td>
+      <td id="T_0c72e_row2_col1" class="data row2 col1" >75.05</td>
+      <td id="T_0c72e_row2_col2" class="data row2 col2" >37.43</td>
+      <td id="T_0c72e_row2_col3" class="data row2 col3" >22.24</td>
+      <td id="T_0c72e_row2_col4" class="data row2 col4" >7.24</td>
+      <td id="T_0c72e_row2_col5" class="data row2 col5" >2.93</td>
+    </tr>
+    <tr>
+      <th id="T_0c72e_level0_row3" class="row_heading level0 row3" >2048</th>
+      <td id="T_0c72e_row3_col0" class="data row3 col0" >312.09</td>
+      <td id="T_0c72e_row3_col1" class="data row3 col1" >294.96</td>
+      <td id="T_0c72e_row3_col2" class="data row3 col2" >147.92</td>
+      <td id="T_0c72e_row3_col3" class="data row3 col3" >73.45</td>
+      <td id="T_0c72e_row3_col4" class="data row3 col4" >19.31</td>
+      <td id="T_0c72e_row3_col5" class="data row3 col5" >10.29</td>
+    </tr>
+    <tr>
+      <th id="T_0c72e_level0_row4" class="row_heading level0 row4" >4096</th>
+      <td id="T_0c72e_row4_col0" class="data row4 col0" >1557.65</td>
+      <td id="T_0c72e_row4_col1" class="data row4 col1" >1587.7</td>
+      <td id="T_0c72e_row4_col2" class="data row4 col2" >790.32</td>
+      <td id="T_0c72e_row4_col3" class="data row4 col3" >392.97</td>
+      <td id="T_0c72e_row4_col4" class="data row4 col4" >96.22</td>
+      <td id="T_0c72e_row4_col5" class="data row4 col5" >48.49</td>
+    </tr>
+  </tbody>
+</table>
+</td><td style='vertical-align: top; padding: 5px;'><div style='text-align: left; font-weight: bold;'>Average execution time (s) for method: block</div><style type="text/css">
+#T_f924c_row0_col0, #T_f924c_row1_col0, #T_f924c_row2_col0, #T_f924c_row3_col0, #T_f924c_row4_col0 {
+  background-color: darkred;
+}
+#T_f924c_row0_col5, #T_f924c_row1_col5, #T_f924c_row2_col5, #T_f924c_row3_col5, #T_f924c_row4_col5 {
+  background-color: darkgreen;
+}
+</style>
+<table id="T_f924c">
+  <thead>
+    <tr>
+      <th class="blank level0" >&nbsp;</th>
+      <th id="T_f924c_level0_col0" class="col_heading level0 col0" >seq</th>
+      <th id="T_f924c_level0_col1" class="col_heading level0 col1" >1</th>
+      <th id="T_f924c_level0_col2" class="col_heading level0 col2" >2</th>
+      <th id="T_f924c_level0_col3" class="col_heading level0 col3" >4</th>
+      <th id="T_f924c_level0_col4" class="col_heading level0 col4" >16</th>
+      <th id="T_f924c_level0_col5" class="col_heading level0 col5" >32</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Size</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+      <th class="blank col5" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_f924c_level0_row0" class="row_heading level0 row0" >128</th>
+      <td id="T_f924c_row0_col0" class="data row0 col0" >1.18</td>
+      <td id="T_f924c_row0_col1" class="data row0 col1" >1.01</td>
+      <td id="T_f924c_row0_col2" class="data row0 col2" >0.51</td>
+      <td id="T_f924c_row0_col3" class="data row0 col3" >0.26</td>
+      <td id="T_f924c_row0_col4" class="data row0 col4" >0.07</td>
+      <td id="T_f924c_row0_col5" class="data row0 col5" >0.04</td>
+    </tr>
+    <tr>
+      <th id="T_f924c_level0_row1" class="row_heading level0 row1" >512</th>
+      <td id="T_f924c_row1_col0" class="data row1 col0" >19.49</td>
+      <td id="T_f924c_row1_col1" class="data row1 col1" >16.13</td>
+      <td id="T_f924c_row1_col2" class="data row1 col2" >8.07</td>
+      <td id="T_f924c_row1_col3" class="data row1 col3" >4.15</td>
+      <td id="T_f924c_row1_col4" class="data row1 col4" >1.03</td>
+      <td id="T_f924c_row1_col5" class="data row1 col5" >0.53</td>
+    </tr>
+    <tr>
+      <th id="T_f924c_level0_row2" class="row_heading level0 row2" >1024</th>
+      <td id="T_f924c_row2_col0" class="data row2 col0" >76.95</td>
+      <td id="T_f924c_row2_col1" class="data row2 col1" >64.49</td>
+      <td id="T_f924c_row2_col2" class="data row2 col2" >32.26</td>
+      <td id="T_f924c_row2_col3" class="data row2 col3" >16.4</td>
+      <td id="T_f924c_row2_col4" class="data row2 col4" >4.11</td>
+      <td id="T_f924c_row2_col5" class="data row2 col5" >2.04</td>
+    </tr>
+    <tr>
+      <th id="T_f924c_level0_row3" class="row_heading level0 row3" >2048</th>
+      <td id="T_f924c_row3_col0" class="data row3 col0" >312.09</td>
+      <td id="T_f924c_row3_col1" class="data row3 col1" >258.11</td>
+      <td id="T_f924c_row3_col2" class="data row3 col2" >129.1</td>
+      <td id="T_f924c_row3_col3" class="data row3 col3" >64.59</td>
+      <td id="T_f924c_row3_col4" class="data row3 col4" >16.38</td>
+      <td id="T_f924c_row3_col5" class="data row3 col5" >8.11</td>
+    </tr>
+    <tr>
+      <th id="T_f924c_level0_row4" class="row_heading level0 row4" >4096</th>
+      <td id="T_f924c_row4_col0" class="data row4 col0" >1557.65</td>
+      <td id="T_f924c_row4_col1" class="data row4 col1" >1032.91</td>
+      <td id="T_f924c_row4_col2" class="data row4 col2" >516.59</td>
+      <td id="T_f924c_row4_col3" class="data row4 col3" >258.57</td>
+      <td id="T_f924c_row4_col4" class="data row4 col4" >66.63</td>
+      <td id="T_f924c_row4_col5" class="data row4 col5" >33.29</td>
+    </tr>
+  </tbody>
+</table>
+</td></tr></table>
+
+As one can see from the execution times and speed-ups, the **32-rank version was fastest** in all cases. It outperformed the other alternatives even on small grids, which was not necessarily obvious due to communication overhead. However, the speed-up increased with grid size.
+
+<table><tr><td style='vertical-align: top; padding: 5px;'><div style='text-align: left; font-weight: bold;'>Speed-up for method: row</div><style type="text/css">
+#T_19b19_row0_col0, #T_19b19_row1_col0, #T_19b19_row2_col0, #T_19b19_row3_col0, #T_19b19_row4_col0 {
+  background-color: darkred;
+}
+#T_19b19_row0_col3, #T_19b19_row1_col4, #T_19b19_row2_col4, #T_19b19_row3_col4, #T_19b19_row4_col4 {
+  background-color: darkgreen;
+}
+</style>
+<table id="T_19b19">
+  <thead>
+    <tr>
+      <th class="index_name level0" >Procs</th>
+      <th id="T_19b19_level0_col0" class="col_heading level0 col0" >1</th>
+      <th id="T_19b19_level0_col1" class="col_heading level0 col1" >2</th>
+      <th id="T_19b19_level0_col2" class="col_heading level0 col2" >4</th>
+      <th id="T_19b19_level0_col3" class="col_heading level0 col3" >16</th>
+      <th id="T_19b19_level0_col4" class="col_heading level0 col4" >32</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Size</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_19b19_level0_row0" class="row_heading level0 row0" >128</th>
+      <td id="T_19b19_row0_col0" class="data row0 col0" >1.03</td>
+      <td id="T_19b19_row0_col1" class="data row0 col1" >1.98</td>
+      <td id="T_19b19_row0_col2" class="data row0 col2" >3.26</td>
+      <td id="T_19b19_row0_col3" class="data row0 col3" >8.68</td>
+      <td id="T_19b19_row0_col4" class="data row0 col4" ></td>
+    </tr>
+    <tr>
+      <th id="T_19b19_level0_row1" class="row_heading level0 row1" >512</th>
+      <td id="T_19b19_row1_col0" class="data row1 col0" >1.01</td>
+      <td id="T_19b19_row1_col1" class="data row1 col1" >2.11</td>
+      <td id="T_19b19_row1_col2" class="data row1 col2" >3.51</td>
+      <td id="T_19b19_row1_col3" class="data row1 col3" >15.69</td>
+      <td id="T_19b19_row1_col4" class="data row1 col4" >27.37</td>
+    </tr>
+    <tr>
+      <th id="T_19b19_level0_row2" class="row_heading level0 row2" >1024</th>
+      <td id="T_19b19_row2_col0" class="data row2 col0" >1.03</td>
+      <td id="T_19b19_row2_col1" class="data row2 col1" >2.06</td>
+      <td id="T_19b19_row2_col2" class="data row2 col2" >3.46</td>
+      <td id="T_19b19_row2_col3" class="data row2 col3" >10.62</td>
+      <td id="T_19b19_row2_col4" class="data row2 col4" >26.25</td>
+    </tr>
+    <tr>
+      <th id="T_19b19_level0_row3" class="row_heading level0 row3" >2048</th>
+      <td id="T_19b19_row3_col0" class="data row3 col0" >1.06</td>
+      <td id="T_19b19_row3_col1" class="data row3 col1" >2.11</td>
+      <td id="T_19b19_row3_col2" class="data row3 col2" >4.25</td>
+      <td id="T_19b19_row3_col3" class="data row3 col3" >16.16</td>
+      <td id="T_19b19_row3_col4" class="data row3 col4" >30.33</td>
+    </tr>
+    <tr>
+      <th id="T_19b19_level0_row4" class="row_heading level0 row4" >4096</th>
+      <td id="T_19b19_row4_col0" class="data row4 col0" >0.98</td>
+      <td id="T_19b19_row4_col1" class="data row4 col1" >1.97</td>
+      <td id="T_19b19_row4_col2" class="data row4 col2" >3.96</td>
+      <td id="T_19b19_row4_col3" class="data row4 col3" >16.19</td>
+      <td id="T_19b19_row4_col4" class="data row4 col4" >32.12</td>
+    </tr>
+  </tbody>
+</table>
+</td><td style='vertical-align: top; padding: 5px;'><div style='text-align: left; font-weight: bold;'>Speed-up for method: block</div><style type="text/css">
+#T_56055_row0_col0, #T_56055_row1_col0, #T_56055_row2_col0, #T_56055_row3_col0, #T_56055_row4_col0 {
+  background-color: darkred;
+}
+#T_56055_row0_col4, #T_56055_row1_col4, #T_56055_row2_col4, #T_56055_row3_col4, #T_56055_row4_col4 {
+  background-color: darkgreen;
+}
+</style>
+<table id="T_56055">
+  <thead>
+    <tr>
+      <th class="index_name level0" >Procs</th>
+      <th id="T_56055_level0_col0" class="col_heading level0 col0" >1</th>
+      <th id="T_56055_level0_col1" class="col_heading level0 col1" >2</th>
+      <th id="T_56055_level0_col2" class="col_heading level0 col2" >4</th>
+      <th id="T_56055_level0_col3" class="col_heading level0 col3" >16</th>
+      <th id="T_56055_level0_col4" class="col_heading level0 col4" >32</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Size</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_56055_level0_row0" class="row_heading level0 row0" >128</th>
+      <td id="T_56055_row0_col0" class="data row0 col0" >1.16</td>
+      <td id="T_56055_row0_col1" class="data row0 col1" >2.32</td>
+      <td id="T_56055_row0_col2" class="data row0 col2" >4.49</td>
+      <td id="T_56055_row0_col3" class="data row0 col3" >16.94</td>
+      <td id="T_56055_row0_col4" class="data row0 col4" >30.24</td>
+    </tr>
+    <tr>
+      <th id="T_56055_level0_row1" class="row_heading level0 row1" >512</th>
+      <td id="T_56055_row1_col0" class="data row1 col0" >1.21</td>
+      <td id="T_56055_row1_col1" class="data row1 col1" >2.41</td>
+      <td id="T_56055_row1_col2" class="data row1 col2" >4.7</td>
+      <td id="T_56055_row1_col3" class="data row1 col3" >18.89</td>
+      <td id="T_56055_row1_col4" class="data row1 col4" >36.99</td>
+    </tr>
+    <tr>
+      <th id="T_56055_level0_row2" class="row_heading level0 row2" >1024</th>
+      <td id="T_56055_row2_col0" class="data row2 col0" >1.19</td>
+      <td id="T_56055_row2_col1" class="data row2 col1" >2.39</td>
+      <td id="T_56055_row2_col2" class="data row2 col2" >4.69</td>
+      <td id="T_56055_row2_col3" class="data row2 col3" >18.71</td>
+      <td id="T_56055_row2_col4" class="data row2 col4" >37.63</td>
+    </tr>
+    <tr>
+      <th id="T_56055_level0_row3" class="row_heading level0 row3" >2048</th>
+      <td id="T_56055_row3_col0" class="data row3 col0" >1.21</td>
+      <td id="T_56055_row3_col1" class="data row3 col1" >2.42</td>
+      <td id="T_56055_row3_col2" class="data row3 col2" >4.83</td>
+      <td id="T_56055_row3_col3" class="data row3 col3" >19.06</td>
+      <td id="T_56055_row3_col4" class="data row3 col4" >38.47</td>
+    </tr>
+    <tr>
+      <th id="T_56055_level0_row4" class="row_heading level0 row4" >4096</th>
+      <td id="T_56055_row4_col0" class="data row4 col0" >1.51</td>
+      <td id="T_56055_row4_col1" class="data row4 col1" >3.02</td>
+      <td id="T_56055_row4_col2" class="data row4 col2" >6.02</td>
+      <td id="T_56055_row4_col3" class="data row4 col3" >23.38</td>
+      <td id="T_56055_row4_col4" class="data row4 col4" >46.79</td>
+    </tr>
+  </tbody>
+</table>
+</td></tr></table>
+
+The MPI overhead was too small to make the 1-rank version slower than the sequential one; in fact, it was slightly faster. This is likely due to minor differences in the inner loop, but the speed-up is negligible.
+
+The **block** grid division slightly outperformed the **row** division in all measured cases. The best speed-up from the row method to the block method was **1.95** for the `128 × 128` grid on `16` ranks. The derived data types used in the block-rank method also contribute to the speed-up.
+
+<table><tr><td style='vertical-align: top; padding: 5px;'><div style='text-align: left; font-weight: bold;'>Speed-up: block vs row</div><style type="text/css">
+#T_33fc4_row0_col0, #T_33fc4_row1_col1, #T_33fc4_row2_col1, #T_33fc4_row3_col2, #T_33fc4_row4_col3 {
+  background-color: darkred;
+}
+#T_33fc4_row0_col3, #T_33fc4_row1_col4, #T_33fc4_row2_col3, #T_33fc4_row3_col4, #T_33fc4_row4_col0 {
+  background-color: darkgreen;
+}
+</style>
+<table id="T_33fc4">
+  <thead>
+    <tr>
+      <th class="index_name level0" >Procs</th>
+      <th id="T_33fc4_level0_col0" class="col_heading level0 col0" >1</th>
+      <th id="T_33fc4_level0_col1" class="col_heading level0 col1" >2</th>
+      <th id="T_33fc4_level0_col2" class="col_heading level0 col2" >4</th>
+      <th id="T_33fc4_level0_col3" class="col_heading level0 col3" >16</th>
+      <th id="T_33fc4_level0_col4" class="col_heading level0 col4" >32</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Size</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_33fc4_level0_row0" class="row_heading level0 row0" >128</th>
+      <td id="T_33fc4_row0_col0" class="data row0 col0" >1.13</td>
+      <td id="T_33fc4_row0_col1" class="data row0 col1" >1.17</td>
+      <td id="T_33fc4_row0_col2" class="data row0 col2" >1.38</td>
+      <td id="T_33fc4_row0_col3" class="data row0 col3" >1.95</td>
+      <td id="T_33fc4_row0_col4" class="data row0 col4" ></td>
+    </tr>
+    <tr>
+      <th id="T_33fc4_level0_row1" class="row_heading level0 row1" >512</th>
+      <td id="T_33fc4_row1_col0" class="data row1 col0" >1.2</td>
+      <td id="T_33fc4_row1_col1" class="data row1 col1" >1.14</td>
+      <td id="T_33fc4_row1_col2" class="data row1 col2" >1.34</td>
+      <td id="T_33fc4_row1_col3" class="data row1 col3" >1.2</td>
+      <td id="T_33fc4_row1_col4" class="data row1 col4" >1.35</td>
+    </tr>
+    <tr>
+      <th id="T_33fc4_level0_row2" class="row_heading level0 row2" >1024</th>
+      <td id="T_33fc4_row2_col0" class="data row2 col0" >1.16</td>
+      <td id="T_33fc4_row2_col1" class="data row2 col1" >1.16</td>
+      <td id="T_33fc4_row2_col2" class="data row2 col2" >1.36</td>
+      <td id="T_33fc4_row2_col3" class="data row2 col3" >1.76</td>
+      <td id="T_33fc4_row2_col4" class="data row2 col4" >1.43</td>
+    </tr>
+    <tr>
+      <th id="T_33fc4_level0_row3" class="row_heading level0 row3" >2048</th>
+      <td id="T_33fc4_row3_col0" class="data row3 col0" >1.14</td>
+      <td id="T_33fc4_row3_col1" class="data row3 col1" >1.15</td>
+      <td id="T_33fc4_row3_col2" class="data row3 col2" >1.14</td>
+      <td id="T_33fc4_row3_col3" class="data row3 col3" >1.18</td>
+      <td id="T_33fc4_row3_col4" class="data row3 col4" >1.27</td>
+    </tr>
+    <tr>
+      <th id="T_33fc4_level0_row4" class="row_heading level0 row4" >4096</th>
+      <td id="T_33fc4_row4_col0" class="data row4 col0" >1.54</td>
+      <td id="T_33fc4_row4_col1" class="data row4 col1" >1.53</td>
+      <td id="T_33fc4_row4_col2" class="data row4 col2" >1.52</td>
+      <td id="T_33fc4_row4_col3" class="data row4 col3" >1.44</td>
+      <td id="T_33fc4_row4_col4" class="data row4 col4" >1.46</td>
+    </tr>
+  </tbody>
+</table>
+</td></tr></table>
+
+All the previous versions were tested on **one node**. We also tested both the row and block implementations on **two nodes** by assigning each node half the processes. For size `1024 × 1024` and `4096 × 4096` on `16` and `32` processes, this barely produced any difference. The only difference that was not negligible was for the `1024 × 1024` grid on `16` processes, which was roughly **12% slower** on 2 nodes for the row-rank method.
+
+<table><tr><td style='vertical-align: top; padding: 5px;'><div style='text-align: left; font-weight: bold;'>Speed-up: 2 nodes vs 1 node, method: block</div><style type="text/css">
+#T_28b78_row2_col3, #T_28b78_row4_col3 {
+  background-color: darkgreen;
+}
+#T_28b78_row2_col4, #T_28b78_row4_col4 {
+  background-color: darkred;
+}
+</style>
+<table id="T_28b78">
+  <thead>
+    <tr>
+      <th class="index_name level0" >Procs</th>
+      <th id="T_28b78_level0_col0" class="col_heading level0 col0" >1</th>
+      <th id="T_28b78_level0_col1" class="col_heading level0 col1" >2</th>
+      <th id="T_28b78_level0_col2" class="col_heading level0 col2" >4</th>
+      <th id="T_28b78_level0_col3" class="col_heading level0 col3" >16</th>
+      <th id="T_28b78_level0_col4" class="col_heading level0 col4" >32</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Size</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_28b78_level0_row0" class="row_heading level0 row0" >128</th>
+      <td id="T_28b78_row0_col0" class="data row0 col0" ></td>
+      <td id="T_28b78_row0_col1" class="data row0 col1" ></td>
+      <td id="T_28b78_row0_col2" class="data row0 col2" ></td>
+      <td id="T_28b78_row0_col3" class="data row0 col3" ></td>
+      <td id="T_28b78_row0_col4" class="data row0 col4" ></td>
+    </tr>
+    <tr>
+      <th id="T_28b78_level0_row1" class="row_heading level0 row1" >512</th>
+      <td id="T_28b78_row1_col0" class="data row1 col0" ></td>
+      <td id="T_28b78_row1_col1" class="data row1 col1" ></td>
+      <td id="T_28b78_row1_col2" class="data row1 col2" ></td>
+      <td id="T_28b78_row1_col3" class="data row1 col3" ></td>
+      <td id="T_28b78_row1_col4" class="data row1 col4" ></td>
+    </tr>
+    <tr>
+      <th id="T_28b78_level0_row2" class="row_heading level0 row2" >1024</th>
+      <td id="T_28b78_row2_col0" class="data row2 col0" ></td>
+      <td id="T_28b78_row2_col1" class="data row2 col1" ></td>
+      <td id="T_28b78_row2_col2" class="data row2 col2" ></td>
+      <td id="T_28b78_row2_col3" class="data row2 col3" >1.008</td>
+      <td id="T_28b78_row2_col4" class="data row2 col4" >0.982</td>
+    </tr>
+    <tr>
+      <th id="T_28b78_level0_row3" class="row_heading level0 row3" >2048</th>
+      <td id="T_28b78_row3_col0" class="data row3 col0" ></td>
+      <td id="T_28b78_row3_col1" class="data row3 col1" ></td>
+      <td id="T_28b78_row3_col2" class="data row3 col2" ></td>
+      <td id="T_28b78_row3_col3" class="data row3 col3" ></td>
+      <td id="T_28b78_row3_col4" class="data row3 col4" ></td>
+    </tr>
+    <tr>
+      <th id="T_28b78_level0_row4" class="row_heading level0 row4" >4096</th>
+      <td id="T_28b78_row4_col0" class="data row4 col0" ></td>
+      <td id="T_28b78_row4_col1" class="data row4 col1" ></td>
+      <td id="T_28b78_row4_col2" class="data row4 col2" ></td>
+      <td id="T_28b78_row4_col3" class="data row4 col3" >1.032</td>
+      <td id="T_28b78_row4_col4" class="data row4 col4" >1.024</td>
+    </tr>
+  </tbody>
+</table>
+</td><td style='vertical-align: top; padding: 5px;'><div style='text-align: left; font-weight: bold;'>Speed-up: 2 nodes vs 1 node, method: row</div><style type="text/css">
+#T_82163_row2_col3, #T_82163_row4_col3 {
+  background-color: darkred;
+}
+#T_82163_row2_col4, #T_82163_row4_col4 {
+  background-color: darkgreen;
+}
+</style>
+<table id="T_82163">
+  <thead>
+    <tr>
+      <th class="index_name level0" >Procs</th>
+      <th id="T_82163_level0_col0" class="col_heading level0 col0" >1</th>
+      <th id="T_82163_level0_col1" class="col_heading level0 col1" >2</th>
+      <th id="T_82163_level0_col2" class="col_heading level0 col2" >4</th>
+      <th id="T_82163_level0_col3" class="col_heading level0 col3" >16</th>
+      <th id="T_82163_level0_col4" class="col_heading level0 col4" >32</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Size</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+      <th class="blank col4" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_82163_level0_row0" class="row_heading level0 row0" >128</th>
+      <td id="T_82163_row0_col0" class="data row0 col0" ></td>
+      <td id="T_82163_row0_col1" class="data row0 col1" ></td>
+      <td id="T_82163_row0_col2" class="data row0 col2" ></td>
+      <td id="T_82163_row0_col3" class="data row0 col3" ></td>
+      <td id="T_82163_row0_col4" class="data row0 col4" ></td>
+    </tr>
+    <tr>
+      <th id="T_82163_level0_row1" class="row_heading level0 row1" >512</th>
+      <td id="T_82163_row1_col0" class="data row1 col0" ></td>
+      <td id="T_82163_row1_col1" class="data row1 col1" ></td>
+      <td id="T_82163_row1_col2" class="data row1 col2" ></td>
+      <td id="T_82163_row1_col3" class="data row1 col3" ></td>
+      <td id="T_82163_row1_col4" class="data row1 col4" ></td>
+    </tr>
+    <tr>
+      <th id="T_82163_level0_row2" class="row_heading level0 row2" >1024</th>
+      <td id="T_82163_row2_col0" class="data row2 col0" ></td>
+      <td id="T_82163_row2_col1" class="data row2 col1" ></td>
+      <td id="T_82163_row2_col2" class="data row2 col2" ></td>
+      <td id="T_82163_row2_col3" class="data row2 col3" >0.889</td>
+      <td id="T_82163_row2_col4" class="data row2 col4" >1.004</td>
+    </tr>
+    <tr>
+      <th id="T_82163_level0_row3" class="row_heading level0 row3" >2048</th>
+      <td id="T_82163_row3_col0" class="data row3 col0" ></td>
+      <td id="T_82163_row3_col1" class="data row3 col1" ></td>
+      <td id="T_82163_row3_col2" class="data row3 col2" ></td>
+      <td id="T_82163_row3_col3" class="data row3 col3" ></td>
+      <td id="T_82163_row3_col4" class="data row3 col4" ></td>
+    </tr>
+    <tr>
+      <th id="T_82163_level0_row4" class="row_heading level0 row4" >4096</th>
+      <td id="T_82163_row4_col0" class="data row4 col0" ></td>
+      <td id="T_82163_row4_col1" class="data row4 col1" ></td>
+      <td id="T_82163_row4_col2" class="data row4 col2" ></td>
+      <td id="T_82163_row4_col3" class="data row4 col3" >0.993</td>
+      <td id="T_82163_row4_col4" class="data row4 col4" >1.03</td>
+    </tr>
+  </tbody>
+</table>
+</td></tr></table>
+
+Finally, we tried **reducing communication overhead** by taking a larger padding and updating it every `K` steps. We tested this for the two larger cases where it makes the most sense, due to the halo becoming quite large for larger `K`, and on the two best-performing rank sizes. This actually made the algorithm slower, with the slow-down increasing with the size of `K`.
+
+<table><tr><td style='vertical-align: top; padding: 5px;'><div style='text-align: left; font-weight: bold;'>Mean time (s) per K for 1 node</div><style type="text/css">
+#T_79ed4_row0_col0, #T_79ed4_row1_col0 {
+  background-color: darkgreen;
+}
+#T_79ed4_row0_col3, #T_79ed4_row1_col3 {
+  background-color: darkred;
+}
+</style>
+<table id="T_79ed4">
+  <thead>
+    <tr>
+      <th class="blank" >&nbsp;</th>
+      <th class="index_name level0" >K</th>
+      <th id="T_79ed4_level0_col0" class="col_heading level0 col0" >1</th>
+      <th id="T_79ed4_level0_col1" class="col_heading level0 col1" >2</th>
+      <th id="T_79ed4_level0_col2" class="col_heading level0 col2" >4</th>
+      <th id="T_79ed4_level0_col3" class="col_heading level0 col3" >8</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Size</th>
+      <th class="index_name level1" >Procs</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_79ed4_level0_row0" class="row_heading level0 row0" >2048</th>
+      <th id="T_79ed4_level1_row0" class="row_heading level1 row0" >16</th>
+      <td id="T_79ed4_row0_col0" class="data row0 col0" >19.49</td>
+      <td id="T_79ed4_row0_col1" class="data row0 col1" >21.12</td>
+      <td id="T_79ed4_row0_col2" class="data row0 col2" >24.96</td>
+      <td id="T_79ed4_row0_col3" class="data row0 col3" >32.68</td>
+    </tr>
+    <tr>
+      <th id="T_79ed4_level0_row1" class="row_heading level0 row1" >4096</th>
+      <th id="T_79ed4_level1_row1" class="row_heading level1 row1" >32</th>
+      <td id="T_79ed4_row1_col0" class="data row1 col0" >49.98</td>
+      <td id="T_79ed4_row1_col1" class="data row1 col1" >54.86</td>
+      <td id="T_79ed4_row1_col2" class="data row1 col2" >68.48</td>
+      <td id="T_79ed4_row1_col3" class="data row1 col3" >108.59</td>
+    </tr>
+  </tbody>
+</table>
+</td><td style='vertical-align: top; padding: 5px;'><div style='text-align: left; font-weight: bold;'>Mean time (s) per K for 2 nodes</div><style type="text/css">
+#T_c7354_row0_col0, #T_c7354_row1_col0 {
+  background-color: darkgreen;
+}
+#T_c7354_row0_col3, #T_c7354_row1_col3 {
+  background-color: darkred;
+}
+</style>
+<table id="T_c7354">
+  <thead>
+    <tr>
+      <th class="blank" >&nbsp;</th>
+      <th class="index_name level0" >K</th>
+      <th id="T_c7354_level0_col0" class="col_heading level0 col0" >1</th>
+      <th id="T_c7354_level0_col1" class="col_heading level0 col1" >2</th>
+      <th id="T_c7354_level0_col2" class="col_heading level0 col2" >4</th>
+      <th id="T_c7354_level0_col3" class="col_heading level0 col3" >8</th>
+    </tr>
+    <tr>
+      <th class="index_name level0" >Size</th>
+      <th class="index_name level1" >Procs</th>
+      <th class="blank col0" >&nbsp;</th>
+      <th class="blank col1" >&nbsp;</th>
+      <th class="blank col2" >&nbsp;</th>
+      <th class="blank col3" >&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th id="T_c7354_level0_row0" class="row_heading level0 row0" >2048</th>
+      <th id="T_c7354_level1_row0" class="row_heading level1 row0" >16</th>
+      <td id="T_c7354_row0_col0" class="data row0 col0" >21.21</td>
+      <td id="T_c7354_row0_col1" class="data row0 col1" >22.56</td>
+      <td id="T_c7354_row0_col2" class="data row0 col2" >25.3</td>
+      <td id="T_c7354_row0_col3" class="data row0 col3" >33.04</td>
+    </tr>
+    <tr>
+      <th id="T_c7354_level0_row1" class="row_heading level0 row1" >4096</th>
+      <th id="T_c7354_level1_row1" class="row_heading level1 row1" >32</th>
+      <td id="T_c7354_row1_col0" class="data row1 col0" >50.73</td>
+      <td id="T_c7354_row1_col1" class="data row1 col1" >53.94</td>
+      <td id="T_c7354_row1_col2" class="data row1 col2" >68.5</td>
+      <td id="T_c7354_row1_col3" class="data row1 col3" >90.17</td>
+    </tr>
+  </tbody>
+</table>
+</td></tr></table>

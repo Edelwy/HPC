@@ -1,0 +1,4 @@
+Run,Size,Method,Procs,Nodes,Halo,Time
+1,2048,row_wide,16,1,8,32.644
+2,2048,row_wide,16,1,8,32.784
+3,2048,row_wide,16,1,8,32.606

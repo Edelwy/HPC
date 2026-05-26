@@ -24,26 +24,29 @@ STEPS=20    # short — we just need agreement, not long-time stability
 echo "=== verify: N=${N} steps=${STEPS} ==="
 echo "cwd=$(pwd)  (Makefile present: $( [ -f Makefile ] && echo yes || echo NO ))"
 
+mkdir -p ../results
+
 for method in seq row block row_wide; do
     echo "-- ${method}"
     make -B METHOD="${method}"
+    gif="../results/lenia_${method}.gif"
+    final="../results/final_${method}.txt"
     if [ "${method}" = "seq" ]; then
-        ./lenia.out "${N}" --steps "${STEPS}" --final "final_${method}.txt"
+        ./lenia.out "${N}" --steps "${STEPS}" --final "${final}" --gif "${gif}"
     else
-        mpirun --mca pml ob1 -np "${SLURM_NTASKS}" ./lenia.out "${N}" --steps "${STEPS}" --final "final_${method}.txt" \
+        mpirun --mca pml ob1 -np "${SLURM_NTASKS}" ./lenia.out "${N}" --steps "${STEPS}" --final "${final}" --gif "${gif}" \
             $( [ "${method}" = "row_wide" ] && echo "--halo 2" )
     fi
 done
 
 ok=1
 for m in row block row_wide; do
-    if ! diff -q "final_seq.txt" "final_${m}.txt" >/dev/null; then
+    if ! diff -q "../results/final_seq.txt" "../results/final_${m}.txt" >/dev/null; then
         echo "MISMATCH between seq and ${m}!"
-        # Numerical tolerance: allow tiny FP drift (sum-of-products is order-sensitive across decompositions).
         python3 - <<EOF || ok=0
 import sys
-ref = [float(x) for x in open("final_seq.txt").read().split()]
-got = [float(x) for x in open("final_${m}.txt").read().split()]
+ref = [float(x) for x in open("../results/final_seq.txt").read().split()]
+got = [float(x) for x in open("../results/final_${m}.txt").read().split()]
 if len(ref) != len(got):
     print("Length differs!"); sys.exit(1)
 maxd = max(abs(a-b) for a,b in zip(ref, got))

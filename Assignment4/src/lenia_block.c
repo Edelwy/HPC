@@ -9,8 +9,6 @@
 #include "orbium.h"
 #include "gifenc.h"
 
-/* Convolve+grow+clip a single owned cell using a halo-padded extended buffer.
- * No wrap is needed: the halos already contain the correct toroidal neighbours. */
 static inline double evolve_cell_block(const double *src, const double *w,
                                        int ext_i, int ext_j, int ext_cols,
                                        int kernel_size, int R, double dt)
@@ -29,8 +27,6 @@ static inline double evolve_cell_block(const double *src, const double *w,
     return v;
 }
 
-/* Helper: copy a packed block (local_rows * local_cols doubles) into world_full
- * at the position determined by the rank's Cartesian coords. */
 static void unpack_block(double *world_full, const double *gather_pack,
                          MPI_Comm cart, int procs, int local_rows, int local_cols,
                          unsigned int cols)
@@ -55,7 +51,6 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &procs);
 
-    /* 2-D Cartesian topology with toroidal wrap. */
     int dims[2] = {0, 0};
     MPI_Dims_create(procs, 2, dims);
     int periods[2] = {1, 1};
@@ -97,7 +92,6 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
     double *world   = (double *)calloc(ext_rows * ext_cols, sizeof(double));
     double *world_b = (double *)calloc(ext_rows * ext_cols, sizeof(double));
 
-    /* --- Distribute initial world. Rank 0 builds it, sends each rank its block. --- */
     {
         double *world_full = NULL;
         if (rank == 0) {
@@ -108,12 +102,12 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
         }
         double *recv_pack = (double *)malloc(local_rows * local_cols * sizeof(double));
         if (rank == 0) {
-            /* Place own block. */
+
             for (int i = 0; i < local_rows; i++)
                 memcpy(world + (R + i) * ext_cols + R,
                        world_full + (my_row0 + i) * cols + my_col0,
                        local_cols * sizeof(double));
-            /* Send everyone else's block. */
+    
             double *send_pack = (double *)malloc(local_rows * local_cols * sizeof(double));
             for (int r = 1; r < procs; r++) {
                 int rc[2]; MPI_Cart_coords(cart, r, 2, rc);
@@ -138,19 +132,18 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
     }
     memcpy(world_b, world, ext_rows * ext_cols * sizeof(double));
 
-    /* --- Derived datatype for E/W column halos. --- */
     MPI_Datatype col_type;
     MPI_Type_vector(local_rows, R, ext_cols, MPI_DOUBLE, &col_type);
     MPI_Type_commit(&col_type);
-    const int ns_count = R * ext_cols;  /* contiguous after E/W pass populates corners */
+    const int ns_count = R * ext_cols;  
 
     int do_gif   = (opts && opts->gif_path)   ? 1 : 0;
     int do_final = (opts && opts->final_path) ? 1 : 0;
 
     ge_GIF *gif = NULL;
-    double *gather_pack = NULL;  /* rank 0 only: concatenated blocks */
-    double *frame_buf   = NULL;  /* rank 0 only: rectangular world buffer */
-    double *send_pack   = NULL;  /* every rank: packed own block */
+    double *gather_pack = NULL;  
+    double *frame_buf   = NULL;  
+    double *send_pack   = NULL;  
     if (do_gif || do_final) send_pack = (double *)malloc(local_rows * local_cols * sizeof(double));
     if (rank == 0 && (do_gif || do_final)) {
         gather_pack = (double *)malloc((size_t)procs * local_rows * local_cols * sizeof(double));
@@ -160,14 +153,14 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
         gif = ge_new_gif(opts->gif_path, cols, rows, inferno_pallete, 8, -1, 0);
 
     for (unsigned int step = 0; step < steps; step++) {
-        /* E/W column halo (derived MPI_Type_vector). */
+
         MPI_Sendrecv(world + R * ext_cols + R,                 1, col_type, west, 0,
                      world + R * ext_cols + R + local_cols,    1, col_type, east, 0,
                      cart, MPI_STATUS_IGNORE);
         MPI_Sendrecv(world + R * ext_cols + local_cols,        1, col_type, east, 1,
                      world + R * ext_cols + 0,                 1, col_type, west, 1,
                      cart, MPI_STATUS_IGNORE);
-        /* N/S full-width halo (contiguous; corners arrive via the just-filled E/W halos). */
+
         MPI_Sendrecv(world + R * ext_cols,                     ns_count, MPI_DOUBLE, north, 2,
                      world + (R + local_rows) * ext_cols,      ns_count, MPI_DOUBLE, south, 2,
                      cart, MPI_STATUS_IGNORE);
@@ -202,7 +195,6 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
         }
     }
 
-    /* Final gather to rank 0. */
     double *result = NULL;
     if (rank == 0) result = (double *)malloc(rows * cols * sizeof(double));
     if (!send_pack) send_pack = (double *)malloc(local_rows * local_cols * sizeof(double));

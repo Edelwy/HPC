@@ -9,7 +9,6 @@
 #include "orbium.h"
 #include "gifenc.h"
 
-/* Owned row range for rank r (block partitioning, last few ranks get +1 if uneven). */
 static void compute_partition(int rows, int procs, int *counts, int *offsets) {
     int base = rows / procs, extra = rows % procs;
     int off = 0;
@@ -20,9 +19,6 @@ static void compute_partition(int rows, int procs, int *counts, int *offsets) {
     }
 }
 
-/* Convolve+grow+clip a single owned cell using the halo-padded extended buffer.
- * The halo rows (top R and bottom R) already contain the correct toroidal
- * neighbours, so only the column index needs wrapping. */
 static inline double evolve_cell(const double *src, const double *w,
                                  int ext_i, int j,
                                  int cols, int kernel_size, int R, double dt)
@@ -65,7 +61,6 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
     double *w = (double *)malloc(kernel_size * kernel_size * sizeof(double));
     generate_kernel(w, kernel_size);
 
-    /* Build initial full world on rank 0, scatter strips to everyone. */
     double *world_full = NULL;
     if (rank == 0) {
         world_full = (double *)calloc(rows * cols, sizeof(double));
@@ -74,7 +69,6 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
                          orbiums[o].row, orbiums[o].col, orbiums[o].angle);
     }
 
-    /* Extended local buffer with R halo rows on top and bottom. */
     const int padded = (local_rows + 2 * R) * (int)cols;
     double *world   = (double *)calloc(padded, sizeof(double));
     double *world_b = (double *)calloc(padded, sizeof(double));
@@ -100,11 +94,11 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
     }
 
     for (unsigned int step = 0; step < steps; step++) {
-        /* Send top R owned rows up, receive into bottom halo from down. */
+
         MPI_Sendrecv(world + R * (int)cols,                halo_cells, MPI_DOUBLE, up,   0,
                      world + (R + local_rows) * (int)cols, halo_cells, MPI_DOUBLE, down, 0,
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        /* Send bottom R owned rows down, receive into top halo from up. */
+
         MPI_Sendrecv(world + local_rows * (int)cols,       halo_cells, MPI_DOUBLE, down, 1,
                      world,                                halo_cells, MPI_DOUBLE, up,   1,
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);

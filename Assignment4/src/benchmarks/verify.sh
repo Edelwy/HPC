@@ -1,7 +1,5 @@
 #!/bin/bash
 # Build all variants, run a small simulation with each, and compare final states.
-# Single short sbatch job — used as the dependency root for submit_all.sh so the
-# big measurement matrix only runs after correctness passes.
 
 #SBATCH --reservation=fri
 #SBATCH --job-name=lenia_verify
@@ -12,14 +10,12 @@
 #SBATCH --output=lenia_verify_%j.log
 
 set -euo pipefail
-# Slurm copies the script to a spool dir, so $0 isn't the real path.
-# SLURM_SUBMIT_DIR is where sbatch was invoked (submit_all.sh cd's into src/ first).
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}" || exit 1
 
 module load OpenMPI
 
 N=256
-STEPS=20    # short — we just need agreement, not long-time stability
+STEPS=20    # short :)
 
 echo "=== verify: N=${N} steps=${STEPS} ==="
 echo "cwd=$(pwd)  (Makefile present: $( [ -f Makefile ] && echo yes || echo NO ))"

@@ -9,13 +9,6 @@
 #include "orbium.h"
 #include "gifenc.h"
 
-/* Row-wise variant with halo width H = K*R, exchanging only every K iterations.
- *
- * Per epoch (K substeps): after the halo exchange, all cells of the extended
- * buffer are valid. At substep k = 1..K we compute on rows [k*R, padded - k*R).
- * The owned region [H, H + local_rows) is inside that region for every k <= K,
- * so the owned cells are correctly updated at every substep. */
-
 double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
                      double dt, unsigned int kernel_size,
                      const struct orbium_coo *orbiums, unsigned int num_orbiums,
@@ -89,7 +82,6 @@ double *evolve_lenia(unsigned int rows, unsigned int cols, unsigned int steps,
 
     unsigned int step = 0;
     while (step < steps) {
-        /* One halo exchange per K-step epoch. */
         MPI_Sendrecv(world + H * (int)cols,                    halo_cells, MPI_DOUBLE, up,   0,
                      world + (H + local_rows) * (int)cols,     halo_cells, MPI_DOUBLE, down, 0,
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);

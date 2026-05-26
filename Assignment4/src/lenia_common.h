@@ -22,7 +22,7 @@ static inline int wrap(int x, int max) {
     return x;
 }
 
-/* Dump a contiguous rows*cols double world to a plain text file (one row per line). */
+/* Dump a contiguous rows*cols double world to a plain text file. */
 void dump_final_state(const char *path, const double *world,
                       unsigned int rows, unsigned int cols);
 

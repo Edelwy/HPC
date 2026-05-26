@@ -1,12 +1,5 @@
 #!/bin/bash
 # Single sbatch job that builds one Lenia variant and benchmarks it.
-#
-# Caller (submit_all.sh) sets process count and node layout via sbatch flags:
-#   sbatch --ntasks=<P> --nodes=<N> [--ntasks-per-node=<X>] benchmarks/bench.sh \
-#          --method <seq|row|block|row_wide> --size <N> [--reps R] [--outfile FILE] \
-#          [--halo K] [--gif]
-#
-# Output CSV columns: Run,Size,Method,Procs,Nodes,Halo,Time
 
 #SBATCH --reservation=fri
 #SBATCH --job-name=lenia
@@ -17,7 +10,7 @@
 set -euo pipefail
 
 # Slurm copies the script to a spool dir, so $0 isn't the real path.
-# SLURM_SUBMIT_DIR is where sbatch was invoked (submit_all.sh cd's into src/ first).
+# SLURM_SUBMIT_DIR is where sbatch was invoked.
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}" || exit 1
 
 method=row
@@ -42,7 +35,7 @@ done
 module load OpenMPI
 
 echo "=== bench: method=${method} size=${size} reps=${reps} procs=${SLURM_NTASKS:-1} nodes=${SLURM_JOB_NUM_NODES:-1} halo=${halo:-1} ==="
-echo "cwd=$(pwd)  (Makefile present: $( [ -f Makefile ] && echo yes || echo NO ))"
+echo "cwd=$(pwd)  (Makefile present: $( [ -f Makefile ] && echo yes || echo NO ))" # Sanity check :)
 
 make -B METHOD="${method}"
 

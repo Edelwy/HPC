@@ -1,14 +1,12 @@
 #!/bin/bash
-# Submit the full benchmark matrix as a dependency chain.
-# Run from anywhere: this script cds into src/ first.
-# Comment/uncomment sections to control what gets queued.
+# Submit the full benchmark as a dependency chain.
 
 set -euo pipefail
 cd "$(dirname "$0")/.." || exit 1
 SRC_DIR="$PWD"
 mkdir -p ../results
 
-# Pick reps per size: bigger grids are slow; mirror Assignment 2's pragmatic choice.
+# Pick reps per size: bigger grids are slow.
 reps_for() {
     case "$1" in
         128|512|1024) echo 5 ;;
@@ -42,12 +40,12 @@ submit() {
     echo "Queued ${m} N=${s} P=${p} nodes=${n} halo=${h:-1} -> ${prev}  (${out})"
 }
 
-# === Basic task: sequential baseline (t_s) ===
+# === Basic task: sequential baseline ===
 for s in 128 512 1024 2048 4096; do
     submit 1 1 seq "${s}"
 done
 
-# === Basic task: row-wise across cores ===
+# === Basic task: row-wise ===
 # (N=128, P=32) is excluded: strip = 4 < kernel radius R = 13.
 for s in 128 512 1024 2048 4096; do
     for p in 1 2 4 16 32; do
@@ -56,17 +54,14 @@ for s in 128 512 1024 2048 4096; do
     done
 done
 
-# === Bonus: block-wise, same matrix as row-wise.
-# (Skip P=2 if needed; MPI_Dims_create gives 2x1 which is fine but degenerate.)
+# === Bonus: block-wise ===
 for s in 128 512 1024 2048 4096; do
     for p in 1 2 4 16 32; do
-        # Block-wise needs local block >= R=13. For N=128 P=32: 16x32 OK.
-        # For N=128 P=16: 32x32 OK. All combos in our matrix work.
         submit "${p}" 1 block "${s}"
     done
 done
 
-# === Bonus: 1 vs 2 nodes for the same total process count ===
+# === Bonus: 1 vs 2 nodes ===
 for s in 1024 4096; do
     for p in 16 32; do
         submit "${p}" 2 row   "${s}"
@@ -74,14 +69,18 @@ for s in 1024 4096; do
     done
 done
 
-# === Bonus: wide halo sweep at a fixed (N, P) where K*R fits in the strip ===
-# (N=4096, P=32) -> strip=128, R=13, max K=9. Sweep K in 1,2,4,8.
+# === Bonus: wide halo sweep  ===
 for k in 1 2 4 8; do
     submit 32 1 row_wide 4096 "${k}"
 done
-# Smaller grid where K still fits: (N=2048, P=16) -> strip=128, max K=9.
 for k in 1 2 4 8; do
     submit 16 1 row_wide 2048 "${k}"
+done
+for k in 1 2 4 8; do
+    submit 32 2 row_wide 4096 "${k}"
+done
+for k in 1 2 4 8; do
+    submit 16 2 row_wide 2048 "${k}"
 done
 
 echo "All jobs queued. Last id: ${prev}"

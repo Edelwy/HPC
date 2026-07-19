@@ -3,15 +3,12 @@ CC = nvcc
 
 # Compiler flags
 LDLIBS = -lm
-BLOCKSIZE ?= 16
-CFLAGS = -Wno-deprecated-gpu-targets -gencode=arch=compute_70,code=sm_70 -O3 -Xcompiler --openmp,-Wall -DBLOCKSIZE=$(BLOCKSIZE)
+CFLAGS = -Wno-deprecated-gpu-targets -gencode=arch=compute_70,code=sm_70 -O3 -Xcompiler --openmp,-Wall
 
-#SRC=src
-SRC=.
+SRC=src
 
 # Source files
-#SRCS=$(wildcard $(SRC)/*.cu)
-SRCS=$(wildcard $(SRC)/lennard-jones.cu)
+SRCS=$(wildcard $(SRC)/*.cu)
 SRCS+=$(wildcard $(SRC)/*.c)
 
 # Header files

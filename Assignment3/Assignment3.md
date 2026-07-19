@@ -124,23 +124,12 @@ The below figures show the behavior of the system.
 
 Implement a parallel Lennard-Jones simulation in C/C++ using CUDA based on the [reference implementation](src/lennard-jones/). The algorithm should work for an arbitrary number of particles and steps. Note that the C code is poorly optimised; feel free to improve it. It also includes optional code to generate animations, which you can use to examine the results.  
 
-### Reference Code organisation
-
-- `Makefile` -> Project build rules.
-- `run-lj.sh` -> Sbatch script to acquire resources on the Arnes cluster, build and run the simulator.
-- `src/`
-  - `main.c` -> Main project file.
-  - `lennard-jones.cu` -> Lennard-Jones simulation code.
-  - `gifenc.c` -> Code for generating gif animations; taken from [here](https://github.com/lecram/gifenc).
-
 ### Basic tasks (for grades 6-8)
 
 - Parallelise the algorithm using CUDA as efficiently as possible. Avoid unnecessary memory transfers between the host and the device. When dividing the workload, find the optimal number of threads and thread block size. Allow the option to track the system's energy at each step.
 - Measure the execution time of the algorithm on the Arnes cluster for different numbers of particles. Use the particle numbers: 1000, 2000, 4000, and 8000. Benchmark the algorithm on 5000 simulation steps. When measuring time, the data transfers to and from the GPU must also be included.
 - Compute the speed-up $S=t_s/t_p$ of your algorithm for each particle number; $t_s$ is the execution time of the sequential algorithm on the CPU, and $t_p$ is the execution time of the parallel algorithm on the GPU. Run the algorithm multiple times (at least 5) and average the measurements. Note that the base code for high particle counts takes a long time to run. You can do only one run in such a case.
 - Visualise the resulting final state (don't put it in the report, but store it separately). You can even create an animation that shows how the system behaves over time. Do not include the time required to produce the animation in the time measurements or speed-ups.
-- Write a short report (1-2 pages) summarising your solution and presenting the measurements performed on the cluster. The main focus should be on presenting and explaining the time measurements and speed-ups.
-- Hand in your code and the report (one submission per pair) to ucilnica through the appropriate form by the specified deadline (**5. 5. 2026**) and defend your code and report during labs.
 
 ### Bonus tasks (for grades 9-10)
 

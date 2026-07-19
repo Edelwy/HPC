@@ -1,72 +1,67 @@
+#define _POSIX_C_SOURCE 199309L /* CLOCK_MONOTONIC for std=c99 */
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <omp.h>
+#include <string.h>
+#include <time.h>
 
-#include "lennard-jones.h"
+#include "lennard_jones.h"
+#include "lennard_jones_common.h"
 
-void print_help(const char *exe) {
-    printf("Usage: %s [N] [nsteps]\n", exe);
-}
+#define DEFAULT_N     1000
+#define DEFAULT_STEPS 5000
+#define DENSITY       0.95
+#define TEMPERATURE   0.5
+#define SEED          42
 
 int main(int argc, char **argv) {
-    // default parameters
-    unsigned int nsteps = 100;
-    unsigned int n = 100;
-    double density = 0.95;
-    double temperature = 0.5;
-    unsigned int seed = 42;
-    
-    Particle *particles = NULL;
-    SimulationResult result;
+    unsigned int n = DEFAULT_N;
+    unsigned int nsteps = DEFAULT_STEPS;
+    int track_energy = 0;
+    const char *gif_path = NULL;
+    const char *final_path = NULL;
 
-    // read command line arguments
-    if (argc > 1) {
-        n = (unsigned int)strtoul(argv[1], NULL, 10);
+    /* usage: ./lj.out [N] [--steps S] [--energy] [--gif path] [--final path] */
+    int i = 1;
+    if (i < argc && argv[i][0] != '-') {
+        n = (unsigned int)strtoul(argv[i], NULL, 10);
+        i++;
     }
-    if (argc > 2) {
-        nsteps = (unsigned int)strtoul(argv[2], NULL, 10);
-    }
-    if (argc > 3) {
-        print_help(argv[0]);
-        return 1;
+    for (; i < argc; i++) {
+        if (!strcmp(argv[i], "--steps"))       nsteps = (unsigned int)strtoul(argv[++i], NULL, 10);
+        else if (!strcmp(argv[i], "--energy")) track_energy = 1;
+        else if (!strcmp(argv[i], "--gif"))    gif_path = argv[++i];
+        else if (!strcmp(argv[i], "--final"))  final_path = argv[++i];
     }
 
-    // simulation box size is determined by the number of particles and the desired density
-    double particle_box_size = ceil(sqrt((double)n / density));
+    /* box size follows from particle count and target density */
+    double particle_box_size = ceil(sqrt((double)n / DENSITY));
     double box_size = (4.0 / 3.0) * particle_box_size;
     double box_fraction = particle_box_size / box_size;
 
-    // allocate memory for particles
-    if (!(particles = calloc(n, sizeof(Particle)))) {
-        fprintf(stderr, "Failed to allocate simulation arrays.\n");
-        return 1;
-    }
+    Particle *particles = (Particle *)calloc(n, sizeof(Particle));
+    initialize_particles(particles, n, box_size, box_fraction, SEED, TEMPERATURE);
 
-    // initalize particles with random positions and velocities
-    if (!initialize_particles(
-            particles,
-            n,
-            box_size,
-            box_fraction,
-            seed,
-            temperature
-        )) {
-        fprintf(stderr, "Failed to initialize particles.\n");
-        free(particles);
-        return 1;
-    }
+    SimOptions opts;
+    opts.n = n;
+    opts.nsteps = nsteps;
+    opts.box_size = box_size;
+    opts.track_energy = track_energy;
+    opts.gif_path = gif_path;
 
-    //run simulation and measure time
-    double start = omp_get_wtime();
-    result = run_simulation(particles, n, nsteps, box_size, 1);
-    double stop = omp_get_wtime();
-    printf("\nFinished simulation.\n");
+    struct timespec t0, t1;
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    SimulationResult result = run_simulation(particles, &opts);
+    clock_gettime(CLOCK_MONOTONIC, &t1);
+
+    /* final-state visualisation is written after timing so it is excluded */
+    if (final_path) dump_final_state(final_path, particles, n);
+
+    double elapsed = (t1.tv_sec - t0.tv_sec) + (t1.tv_nsec - t0.tv_nsec) / 1e9;
     printf("Final KE: %10.4f | delta: %+.4f\n", result.final_kinetic, result.final_kinetic - result.start_kinetic);
     printf("Final PE: %10.4f | delta: %+.4f\n", result.final_potential, result.final_potential - result.start_potential);
     printf("Final E:  %10.4f | delta: %+.4f\n", result.final_total, result.final_total - result.start_total);
-
-    printf("Simulation time %d steps: %.3f seconds\n", nsteps, stop - start);
+    printf("Execution time: %.3f\n", elapsed);
 
     free(particles);
     return 0;

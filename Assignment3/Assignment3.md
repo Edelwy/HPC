@@ -124,14 +124,14 @@ The below figures show the behavior of the system.
 
 Implement a parallel Lennard-Jones simulation in C/C++ using CUDA based on the [reference implementation](src/lennard-jones/). The algorithm should work for an arbitrary number of particles and steps. Note that the C code is poorly optimised; feel free to improve it. It also includes optional code to generate animations, which you can use to examine the results.  
 
-### Basic tasks (for grades 6-8)
+### Basic tasks 
 
 - Parallelise the algorithm using CUDA as efficiently as possible. Avoid unnecessary memory transfers between the host and the device. When dividing the workload, find the optimal number of threads and thread block size. Allow the option to track the system's energy at each step.
 - Measure the execution time of the algorithm on the Arnes cluster for different numbers of particles. Use the particle numbers: 1000, 2000, 4000, and 8000. Benchmark the algorithm on 5000 simulation steps. When measuring time, the data transfers to and from the GPU must also be included.
 - Compute the speed-up $S=t_s/t_p$ of your algorithm for each particle number; $t_s$ is the execution time of the sequential algorithm on the CPU, and $t_p$ is the execution time of the parallel algorithm on the GPU. Run the algorithm multiple times (at least 5) and average the measurements. Note that the base code for high particle counts takes a long time to run. You can do only one run in such a case.
 - Visualise the resulting final state (don't put it in the report, but store it separately). You can even create an animation that shows how the system behaves over time. Do not include the time required to produce the animation in the time measurements or speed-ups.
 
-### Bonus tasks (for grades 9-10)
+### Bonus tasks 
 
 - Parallelise (with OpenMP) the provided sequential code. Use your improved code as the baseline (with the optimal number of cores) for the measurements when computing speed-ups against the GPU.
 - Improve the reference code: note that due to Newton's 3rd law, for every action (force) in nature, there is an equal and opposite reaction. When one object exerts a force on a second object, the second object simultaneously exerts a force equal in magnitude and opposite in direction on the first, thus you only need to compute half of the interactions: $N(N-1)/2$.

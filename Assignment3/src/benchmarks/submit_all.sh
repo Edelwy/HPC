@@ -62,9 +62,4 @@ for n in "${SIZES[@]}"; do
     done
 done
 
-# === Bonus 141: two GPUs ===
-for n in "${SIZES[@]}"; do
-    submit gpu2 "${n}" 1 128 2 5
-done
-
 echo "All jobs queued. Last id: ${prev}"

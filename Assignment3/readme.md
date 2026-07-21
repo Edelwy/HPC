@@ -16,21 +16,20 @@ Assignment3/
     ├── lennard_jones_common.c    
     ├── gifenc.c / gifenc.h       # GIF library.
     ├── helper_cuda.h             # CUDA error macros (NVIDIA SDK).
-    ├── Makefile                  # METHOD: seq, omp, gpu, cells, opt, gpu2.
+    ├── Makefile                  # METHOD: seq, omp, gpu, cells, opt.
     │
     ├── lennard_jones_seq.c       # improved sequential with Newton's 3rd law.
     ├── lennard_jones_omp.c       # OpenMP and Newton via array reduction.
     ├── lennard_jones_gpu.cu      # base CUDA does full N².
     ├── lennard_jones_cells.cu    # CUDA with GPU cell lists, biggest optimization.
     ├── lennard_jones_opt.cu      # CUDA with memory and GPU usage optimizations.
-    ├── lennard_jones_gpu2.cu     # CUDA with two GPUs.
     │
     └── benchmarks/
         ├── bench.sh              # One config.
         └── submit_all.sh         # Dependency chain of all configs.
 ```
 
-We have different methods for building different implementations. First we have the sequential version which has mainly been optimized via Newton's 3rd law. Then the OpenMP version and **four** different CUDA versions.
+We have different methods for building different implementations. First we have the sequential version which has mainly been optimized via Newton's 3rd law. Then the OpenMP version and **three** different CUDA versions.
 
 ```
 make METHOD=seq   : gcc   + main.c + lennard_jones_common.c + gifenc.c + lennard_jones_seq.c
@@ -38,7 +37,6 @@ make METHOD=omp   : gcc   + main.c + lennard_jones_common.c + gifenc.c + lennard
 make METHOD=gpu   : nvcc  + main.c + lennard_jones_common.c + gifenc.c + lennard_jones_gpu.cu
 make METHOD=cells : nvcc  + main.c + lennard_jones_common.c + gifenc.c + lennard_jones_cells.cu
 make METHOD=opt   : nvcc  + main.c + lennard_jones_common.c + gifenc.c + lennard_jones_opt.cu
-make METHOD=gpu2  : nvcc  + main.c + lennard_jones_common.c + gifenc.c + lennard_jones_gpu2.cu
 ```
 
 Different flags support different featrues: 
@@ -220,12 +218,48 @@ for (int dcy = -1; dcy <= 1; ++dcy) {
 
 ### Memory optimizations CUDA implementation
 
+This is an optimization coming from the base CUDA implementation. 
 We exchanged the array of structs *(AoS)* for separate arrays *(SoA)* for each field. We did this via `soa_to_aos` function so the signature is still the same.
 
 ```c
 Particle p[n];                                 // Before
 double x[n], y[n], vx[n], vy[n], fx[n], fy[n]; // After
 ```
+
+Besides that we introduced shared memory. We denoted a **tiles** the particle array segments of sizes same to the block size. We save the $x$ and $y$ coordinates of particles on one tile, so the size of the shared memory is:
+
+```c
+size_t shmem = 2 * block * sizeof(double);
+```
+
+The forces are then calculated with the bytes of shared memory per block in mind:
+
+```c
+forces_tiled_kernel<<<grid, block, shmem>>>
+
+// ... And then inside the function:
+extern __shared__ double sh[]; // Use shared memory host allocated.
+double *sx = sh;               // Pointer to the first half: x.
+double *sy = &sh[blockDim.x];  // Pointer to the second half: y.
+```
+
+One tiny difference is that before if $i > n$ we return as that is not a valid particle thread, now we keep these alive because all threads in a block must reach `__syncthreads()` **together**. So for blocks with size $128$ we have the following procedure:
+
+```c
+thread 0 loads particle (tile + 0) to SH
+thread 1 loads particle (tile + 1) to SH
+…
+thread 127 loads particle (tile + 127) to SH
+__syncthreads()
+```
+Therefore after this is synced between all threads, the entire tile is loaded into shared memory. And this is how we loop over tiles instead of the entire array at once:
+
+```c
+unsigned int rem = n - base; // Particles left from here to the end.
+unsigned int jmax = (rem < blockDim.x) ? rem : blockDim.x; // Use a full block size if enough remain.
+```
+
+We must sync again at the end so all threads are finished reading from the tile before any thread overrides the shared memory with next tile's load.
 
 ## Results
 

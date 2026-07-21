@@ -32,30 +32,34 @@ __global__ void leapfrog_current_kernel(double *x, double *y, double *vx, double
 __global__ void forces_tiled_kernel(const double *x, const double *y,
                                      double *fx, double *fy,
                                      unsigned int n, double box_size) {
-    extern __shared__ double sh[];
-    double *sx = sh;
-    double *sy = &sh[blockDim.x];
+    extern __shared__ double sh[]; // Use shared memory host allocated.
+    double *sx = sh;               // Pointer to the first half: x.
+    double *sy = &sh[blockDim.x];  // Pointer to the second half: y.
 
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-    double xi = (i < n) ? x[i] : 0.0;
-    double yi = (i < n) ? y[i] : 0.0;
+    double xi = (i < n) ? x[i] : 0.0; // Particle i's x coordinate or 0.
+    double yi = (i < n) ? y[i] : 0.0; // Particle i's y coordinate or 0.
     double fxi = 0.0;
     double fyi = 0.0;
     const double rc2 = (R_CUT * SIGMA) * (R_CUT * SIGMA);
 
+    // Base is the start index of the current tile.
     for (unsigned int base = 0; base < n; base += blockDim.x) {
-        unsigned int jid = base + threadIdx.x;
+        // Global particle index this thread loads for the current tile.
+        unsigned int jid = base + threadIdx.x; 
+
+        // We load the x and y coordinates to the shared memory.
         sx[threadIdx.x] = (jid < n) ? x[jid] : 0.0;
         sy[threadIdx.x] = (jid < n) ? y[jid] : 0.0;
-        __syncthreads();
+        __syncthreads(); // Sync so all threads are finished writing to the shared memory before any thread reads from it.
 
         unsigned int rem = n - base;
         unsigned int jmax = (rem < blockDim.x) ? rem : blockDim.x;
         for (unsigned int k = 0; k < jmax; ++k) {
             unsigned int j = base + k;
             if (j == i) continue;
-            double dx = xi - sx[k];
-            double dy = yi - sy[k];
+            double dx = xi - sx[k]; // Read from shared memory.
+            double dy = yi - sy[k]; // Read from shared memory.
             dx -= box_size * nearbyint(dx / box_size);
             dy -= box_size * nearbyint(dy / box_size);
             double r2 = dx * dx + dy * dy;
@@ -67,9 +71,10 @@ __global__ void forces_tiled_kernel(const double *x, const double *y,
             fxi += fmag * dx;
             fyi += fmag * dy;
         }
-        __syncthreads();
+        __syncthreads(); // Sync again so all threads are finished reading from the tile before any thread overrides the shared memory with next tile's load.
     }
 
+    // Write the forces back to global memory if valid thread.
     if (i < n) {
         fx[i] = fxi;
         fy[i] = fyi;

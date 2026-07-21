@@ -1,4 +1,4 @@
-# Build:  make METHOD=<seq|omp|gpu|cells|opt|gpu2>                
+# Build:  make METHOD=<seq|omp|gpu|cells|opt>
 # Clean:  make clean
 
 METHOD    ?= seq # default method is sequential.

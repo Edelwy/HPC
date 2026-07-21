@@ -62,16 +62,16 @@ __global__ void forces_cells_kernel(Particle *p, unsigned int n, double box_size
                                      const int *cell_count, const int *cell_list) {
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
-    double xi = p[i].x;
-    double yi = p[i].y;
+    double xi = p[i].x; // Particle i's x coordinate.
+    double yi = p[i].y; // Particle i's y coordinate.
     double fxi = 0.0;
     double fyi = 0.0;
     const double rc2 = (R_CUT * SIGMA) * (R_CUT * SIGMA);
 
-    int cx = (int)(xi / cell_size);
-    int cy = (int)(yi / cell_size);
-    if (cx >= ncell) cx = ncell - 1;
-    if (cy >= ncell) cy = ncell - 1;
+    int cx = (int)(xi / cell_size); // Column position.
+    int cy = (int)(yi / cell_size); // Row position.
+    if (cx >= ncell) cx = ncell - 1; // If on boundry go to valid cell.
+    if (cy >= ncell) cy = ncell - 1; // If on boundry go to valid cell.
 
     for (int dcy = -1; dcy <= 1; ++dcy) {
         int ncy = (cy + dcy + ncell) % ncell;

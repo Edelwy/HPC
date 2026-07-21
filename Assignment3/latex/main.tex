@@ -6,4 +6,96 @@
 
 Source code for this assignment can be found on \href{https://github.com/laspp/HPC/blob/2472513da1348693fd3adbfefac1a6728f4fba4e/labs/04-Assignment3-CUDA/Assignment3.md}{GitHub}. Our scripts and modified source code can be found in our \href{https://github.com/Edelwy/HPC}{\textbf{GitHub} repository}. 
 
+\section{Implementation}
+
+The project structure and details of all implementations can be found in our \href{https://github.com/Edelwy/HPC/blob/3a6c459ccaec52d97bcd7c4595b12c051d74e0f5/Assignment3/readme.md}{\textbf{repository description}}. We support animation output, writing the final state, and printing energies at every step.
+
+First we improved the \href{https://github.com/laspp/HPC/blob/2472513da1348693fd3adbfefac1a6728f4fba4e/labs/04-Assignment3-CUDA/src/lennard-jones/src/lennard-jones.cu}{original \textbf{sequential version}} by applying \textbf{Newton's third law}. In this way we avoided iterating over all ordered pairs and iterated only over unordered pairs. We also precomputed some values and avoided functions such as \texttt{sqrt} and \texttt{pow}. These improvements are present in the other implementations as well.
+
+We kept the Newton's third law improvement in the \textbf{OpenMP} version as well. We used two separate flat arrays for the forces and applied \textbf{array reduction}, where each thread gets a private copy of the array and updates that copy independently. Afterwards OpenMP adds all copies together as a point-wise sum. We also used \textbf{dynamic scheduling}. When a thread finishes its chunk, it requests the next free chunk rather than using fixed chunks upfront, because the outer loop is uneven.
+
+Then we implemented three different \textbf{CUDA} implementations. The first was the basic implementation over the entire ordered pairs loop. We tried different block sizes, from $32$ to $512$. Energies are computed on the host when necessary, while the force computation is done on the device. From this version we then branched into two different optimizations.
+
+Since forces are limited by $r_{cut} = 2.5\sigma$, we can consider only pairs that matter. The entire box is split into \textbf{square cells} with side length at least $r_{cut}$. Therefore we only need to look at the neighbouring $8$ cells. First we bin how many particles are in each cell and which particle indices belong to it. This is done on the device. Then we compute the new forces, again on the device, but only checking the particles own cell and its neighbouring cells.
+
+The second CUDA optimization was to use \textbf{shared memory} and store particles as several arrays instead of one array of structs. This version still iterates through all ordered pairs, so it is comparable with the basic version. We divided the particle array into tiles, each of size equal to the block size. Shared memory was used to store the $x$ and $y$ coordinates of each tile. Instead of reading the entire particle array from global memory repeatedly, we first load one tile into shared memory, compute the interactions, and then move on to the next tile.
+
+\section{Results}
+
+The first two tables show execution times and speed-ups \textbf{relative to the optimized sequential} version, in seconds, averaged over 5 runs for the \textbf{basic CUDA} implementation at different block sizes. Overall, the best block size turned out to be $128$. The next two tables show execution times and speed-ups for \textbf{all} variants: sequential, OpenMP, and the CUDA methods with block size $128$.
+
+\begin{table}[H]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|r|r|r|r|r|} \hline
+                \cellcolor{blue!10}\textbf{$N$} & \multicolumn{5}{c|}{\cellcolor{blue!10}\textbf{Block size}}
+                \\ \cline{2-6}
+                \cellcolor{blue!10} & \cellcolor{blue!20}\texttt{32} & \cellcolor{blue!20}\texttt{64} & \cellcolor{blue!20}\texttt{128} & \cellcolor{blue!20}\texttt{256} & \cellcolor{blue!20}\texttt{512} \\ \hline
+                \texttt{1000} & 1.89 & 1.87 & \cellcolor{green!20}1.79 & 1.81 & \cellcolor{red!20}1.95 \\ \hline
+                \texttt{2000} & 3.65 & 3.44 & \cellcolor{green!20}3.43 & 3.49 & \cellcolor{red!20}3.79 \\ \hline
+                \texttt{4000} & 6.88 & 7.03 & \cellcolor{green!20}6.64 & 6.90 & \cellcolor{red!20}7.44 \\ \hline
+                \texttt{8000} & 13.66 & \cellcolor{green!20}13.65 & 13.85 & 13.69 & \cellcolor{red!20}14.86 \\ \hline
+            \end{tabular}
+            \caption{Base CUDA absolute times (s).}
+        \end{table}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|r|r|r|r|r|} \hline
+                \cellcolor{blue!10}\textbf{$N$} & \multicolumn{5}{c|}{\cellcolor{blue!10}\textbf{Block size}}
+                \\ \cline{2-6}
+                \cellcolor{blue!10} & \cellcolor{blue!20}\texttt{32} & \cellcolor{blue!20}\texttt{64} & \cellcolor{blue!20}\texttt{128} & \cellcolor{blue!20}\texttt{256} & \cellcolor{blue!20}\texttt{512} \\ \hline
+                \texttt{1000} & 4.29 & 4.34 & \cellcolor{green!20}4.52 & 4.47 & \cellcolor{red!20}4.15 \\ \hline
+                \texttt{2000} & 8.29 & 8.80 & \cellcolor{green!20}8.81 & 8.67 & \cellcolor{red!20}7.98 \\ \hline
+                \texttt{4000} & 17.28 & 16.92 & \cellcolor{green!20}17.89 & 17.22 & \cellcolor{red!20}15.97 \\ \hline
+                \texttt{8000} & 33.75 & \cellcolor{green!20}33.78 & 33.30 & 33.70 & \cellcolor{red!20}31.04 \\ \hline
+            \end{tabular}
+            \caption{Base CUDA speed-up.}
+        \end{table}
+    \end{minipage}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|l|r|r|r|r|r|} \hline
+                \cellcolor{blue!10}\textbf{$N$} & \multicolumn{5}{c|}{\cellcolor{blue!10}\textbf{Method}}
+                \\ \cline{2-6}
+                \cellcolor{blue!10} & \cellcolor{blue!20}\texttt{BASE} & \cellcolor{blue!20}\texttt{OMP} & \cellcolor{blue!20}\texttt{CUDA} & \cellcolor{blue!20}\texttt{CELLS} & \cellcolor{blue!20}\texttt{OPT} \\ \hline
+                \texttt{1000} & \cellcolor{red!20}8.10 & 0.91 & 1.79 & \cellcolor{green!20}0.42 & 1.39 \\ \hline
+                \texttt{2000} & \cellcolor{red!20}30.25 & 1.77 & 3.43 & \cellcolor{green!20}0.41 & 2.52 \\ \hline
+                \texttt{4000} & \cellcolor{red!20}118.87 & 3.90 & 6.64 & \cellcolor{green!20}0.44 & 4.72 \\ \hline
+                \texttt{8000} & \cellcolor{red!20}461.15 & 13.21 & 13.65 & \cellcolor{green!20}0.79 & 9.29 \\ \hline
+            \end{tabular}
+            \caption{Method comparison: absolute times (s).}
+        \end{table}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|l|r|r|r|r|r|} \hline
+                \cellcolor{blue!10}\textbf{$N$} & \multicolumn{5}{c|}{\cellcolor{blue!10}\textbf{Method}}
+                \\ \cline{2-6}
+                \cellcolor{blue!10} & \cellcolor{blue!20}\texttt{BASE} & \cellcolor{blue!20}\texttt{OMP} & \cellcolor{blue!20}\texttt{CUDA} & \cellcolor{blue!20}\texttt{CELLS} & \cellcolor{blue!20}\texttt{OPT} \\ \hline
+                \texttt{1000} & \cellcolor{red!20}1.00 & 8.92 & 4.52 & \cellcolor{green!20}19.53 & 5.82 \\ \hline
+                \texttt{2000} & \cellcolor{red!20}1.00 & 17.13 & 8.81 & \cellcolor{green!20}73.18 & 11.99 \\ \hline
+                \texttt{4000} & \cellcolor{red!20}1.00 & 30.51 & 17.89 & \cellcolor{green!20}271.13 & 25.16 \\ \hline
+                \texttt{8000} & \cellcolor{red!20}1.00 & 34.90 & 33.78 & \cellcolor{green!20}580.80 & 49.66 \\ \hline
+            \end{tabular}
+            \caption{Method comparison: speed-up.}
+        \end{table}
+    \end{minipage}
+\end{table}
+
+The best performance was observed for the \textbf{CUDA cell-list} implementation (\textit{\texttt{CELLS}}) with block size $128$. Shared memory also helped (\textit{\texttt{OPT}}), however, the best approach would probably be to combine both. It is interesting that shared memory still sped up the basic implementation considerably, and would likely perform even better for larger particle counts.
+
+It is also interesting that the strong \textbf{OpenMP} version with Newton's third law was comparable to basic CUDA. In fact, it was faster in all measured cases. That gap shrank at larger particle counts and would likely reverse for still larger $N$. Against the CUDA cell-list implementation, however, OpenMP remained much slower throughout.
+
 \end{document}

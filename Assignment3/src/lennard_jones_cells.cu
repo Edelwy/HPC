@@ -12,7 +12,11 @@
 #define BLOCKSIZE 128
 #endif
 
-/* Fixed maximum number of particle indices each cell can store in the GPU cell list. With this we avoid dynamic allocation and resizable lists on device. This is a very large constant so it should work for high density systems. It is however a naive approach. The expected cell size is a not many particles, so this is comfortably large. Overflow is intentionally NOT handled. */
+/* Fixed maximum number of particle indices each cell can store in the GPU cell list. 
+   With this we avoid dynamic allocation and resizable lists on device. 
+   This is a very large constant so it should work for high density systems. 
+   It is however a naive approach. The expected cell size is a not many particles, 
+   so this is comfortably large. Overflow is intentionally NOT handled. */
 #define MAX_PER_CELL 64
 
 __global__ void leapfrog_current_kernel(Particle *p, unsigned int n, double box_size) {
@@ -47,7 +51,9 @@ __global__ void bin_kernel(const Particle *p, unsigned int n, int ncell,
     if (cy >= ncell) cy = ncell - 1; 
     int cell = cy * ncell + cx; // Flattened cell index.
 
-    // Many particles can land in the same cell. If two threads both did count++ and then wrote to the same slot, we get overwrite. So this writes one thread at a time.
+    // Many particles can land in the same cell. 
+    // If two threads both did count++ and then wrote to the same slot, we get overwrite. 
+    // So this writes one thread at a time.
     int slot = atomicAdd(&cell_count[cell], 1);
 
     // If the cell is full we ignore the particle.

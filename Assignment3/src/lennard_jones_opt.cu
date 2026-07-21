@@ -89,7 +89,6 @@ __global__ void leapfrog_new_kernel(double *vx, double *vy, const double *fx,
     vy[i] += 0.5 * DT * fy[i];
 }
 
-/* AoS host particles <-> SoA host staging buffers. */
 static void aos_to_soa(const Particle *p, unsigned int n, double *x, double *y,
                        double *vx, double *vy) {
     for (unsigned int i = 0; i < n; ++i) {

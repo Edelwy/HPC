@@ -5,7 +5,6 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 
-#include "lennard_jones.h"
 #include "lennard_jones_common.h"
 #include "helper_cuda.h"
 
@@ -13,15 +12,7 @@
 #define BLOCKSIZE 128
 #endif
 
-/* Task 141: two GPUs. The particle array is split in half; device 0 owns
- * [0, n0), device 1 owns [n0, n). Each device keeps a full copy of all
- * positions but only updates (forces / integrates) its own half. After the
- * drift each device sends its owned positions to the other (staged through the
- * host), so both hold the full up-to-date positions before the force pass.
- * Kernels take a (start, count) range; otherwise they mirror the base variant.
- * Assumption: exactly two visible GPUs. */
-
-__global__ void kick_drift_kernel(Particle *p, unsigned int start,
+__global__ void leapfrog_current_kernel(Particle *p, unsigned int start,
                                    unsigned int count, double box_size) {
     unsigned int t = blockIdx.x * blockDim.x + threadIdx.x;
     if (t >= count) return;
@@ -47,7 +38,7 @@ __global__ void forces_kernel(Particle *p, unsigned int n, unsigned int start,
     double yi = p[i].y;
     double fxi = 0.0;
     double fyi = 0.0;
-    const double rc2 = R_CUT * R_CUT;
+    const double rc2 = (R_CUT * SIGMA) * (R_CUT * SIGMA);
     for (unsigned int j = 0; j < n; ++j) {
         if (j == i) continue;
         double dx = xi - p[j].x;
@@ -56,10 +47,10 @@ __global__ void forces_kernel(Particle *p, unsigned int n, unsigned int start,
         dy -= box_size * nearbyint(dy / box_size);
         double r2 = dx * dx + dy * dy;
         if (r2 >= rc2) continue;
-        double sr2 = 1.0 / r2;
+        double sr2 = (SIGMA * SIGMA) / r2;
         double sr6 = sr2 * sr2 * sr2;
         double sr12 = sr6 * sr6;
-        double fmag = 24.0 * EPSILON * (2.0 * sr12 - sr6) * sr2;
+        double fmag = 24.0 * EPSILON * (2.0 * sr12 - sr6) / r2;
         fxi += fmag * dx;
         fyi += fmag * dy;
     }
@@ -67,7 +58,7 @@ __global__ void forces_kernel(Particle *p, unsigned int n, unsigned int start,
     p[i].fy = fyi;
 }
 
-__global__ void kick_kernel(Particle *p, unsigned int start, unsigned int count) {
+__global__ void leapfrog_new_kernel(Particle *p, unsigned int start, unsigned int count) {
     unsigned int t = blockIdx.x * blockDim.x + threadIdx.x;
     if (t >= count) return;
     unsigned int i = start + t;
@@ -84,7 +75,7 @@ extern "C" SimulationResult run_simulation(Particle *particles, const SimOptions
     out.start_potential = compute_pe(particles, n, box_size);
     out.start_total = out.start_kinetic + out.start_potential;
 
-    /* device 0 owns [0, n0), device 1 owns [n0, n) */
+    // Device 0 owns [0, n0), device 1 owns [n0, n).
     unsigned int n0 = n / 2;
     unsigned int n1 = n - n0;
     unsigned int block = BLOCKSIZE;
@@ -99,7 +90,7 @@ extern "C" SimulationResult run_simulation(Particle *particles, const SimOptions
     checkCudaErrors(cudaMalloc(&d_p[1], n * sizeof(Particle)));
     checkCudaErrors(cudaMemcpy(d_p[1], particles, n * sizeof(Particle), cudaMemcpyHostToDevice));
 
-    /* initial forces on each device for its own range */
+    // Initial forces on each device for its own range.
     checkCudaErrors(cudaSetDevice(0));
     forces_kernel<<<grid0, block>>>(d_p[0], n, 0, n0, box_size);
     checkCudaErrors(cudaSetDevice(1));
@@ -107,8 +98,8 @@ extern "C" SimulationResult run_simulation(Particle *particles, const SimOptions
 
     ge_GIF *gif = NULL;
     if (opts->gif_path) {
-        gif = lj_open_gif(opts->gif_path);
-        lj_render_frame(gif, particles, n, box_size);
+        gif = open_gif(opts->gif_path);
+        render_frame(gif, particles, n, box_size);
     }
 
     out.final_kinetic = out.start_kinetic;
@@ -118,9 +109,9 @@ extern "C" SimulationResult run_simulation(Particle *particles, const SimOptions
     for (unsigned int step = 0; step < opts->nsteps; step++) {
         /* half-kick + drift on each device (owned range) */
         checkCudaErrors(cudaSetDevice(0));
-        kick_drift_kernel<<<grid0, block>>>(d_p[0], 0, n0, box_size);
+        leapfrog_current_kernel<<<grid0, block>>>(d_p[0], 0, n0, box_size);
         checkCudaErrors(cudaSetDevice(1));
-        kick_drift_kernel<<<grid1, block>>>(d_p[1], n0, n1, box_size);
+        leapfrog_current_kernel<<<grid1, block>>>(d_p[1], n0, n1, box_size);
 
         /* exchange updated owned positions through the host */
         checkCudaErrors(cudaSetDevice(0));
@@ -135,10 +126,10 @@ extern "C" SimulationResult run_simulation(Particle *particles, const SimOptions
         /* force pass (needs all positions) then second half-kick */
         checkCudaErrors(cudaSetDevice(0));
         forces_kernel<<<grid0, block>>>(d_p[0], n, 0, n0, box_size);
-        kick_kernel<<<grid0, block>>>(d_p[0], 0, n0);
+        leapfrog_new_kernel<<<grid0, block>>>(d_p[0], 0, n0);
         checkCudaErrors(cudaSetDevice(1));
         forces_kernel<<<grid1, block>>>(d_p[1], n, n0, n1, box_size);
-        kick_kernel<<<grid1, block>>>(d_p[1], n0, n1);
+        leapfrog_new_kernel<<<grid1, block>>>(d_p[1], n0, n1);
 
         if (opts->track_energy || (gif && FRAME_EVERY > 0 && (step + 1) % FRAME_EVERY == 0)) {
             checkCudaErrors(cudaSetDevice(0));
@@ -151,7 +142,7 @@ extern "C" SimulationResult run_simulation(Particle *particles, const SimOptions
                 printf("step=%6u  KE=%12.6f  PE=%12.6f  E=%12.6f\n", step, ke, pe, ke + pe);
             }
             if (gif && FRAME_EVERY > 0 && (step + 1) % FRAME_EVERY == 0) {
-                lj_render_frame(gif, particles, n, box_size);
+                render_frame(gif, particles, n, box_size);
             }
         }
     }

@@ -5,7 +5,6 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 
-#include "lennard_jones.h"
 #include "lennard_jones_common.h"
 #include "helper_cuda.h"
 
@@ -13,15 +12,7 @@
 #define BLOCKSIZE 128
 #endif
 
-/* Tasks 139 + 140 on top of the base full-N^2 GPU variant:
- *  - Structure-of-Arrays layout (x,y,vx,vy,fx,fy) so global-memory accesses by
- *    consecutive threads coalesce.
- *  - Shared-memory tiling: each block cooperatively stages BLOCKSIZE neighbour
- *    positions into shared memory and reuses them across the whole block,
- *    cutting global-memory traffic in the force loop (NVIDIA n-body pattern).
- *  - BLOCKSIZE is a compile-time knob (-DBLOCKSIZE) for block-size tuning. */
-
-__global__ void kick_drift_kernel(double *x, double *y, double *vx, double *vy,
+__global__ void leapfrog_current_kernel(double *x, double *y, double *vx, double *vy,
                                    const double *fx, const double *fy,
                                    unsigned int n, double box_size) {
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -50,7 +41,7 @@ __global__ void forces_tiled_kernel(const double *x, const double *y,
     double yi = (i < n) ? y[i] : 0.0;
     double fxi = 0.0;
     double fyi = 0.0;
-    const double rc2 = R_CUT * R_CUT;
+    const double rc2 = (R_CUT * SIGMA) * (R_CUT * SIGMA);
 
     for (unsigned int base = 0; base < n; base += blockDim.x) {
         unsigned int jid = base + threadIdx.x;
@@ -69,10 +60,10 @@ __global__ void forces_tiled_kernel(const double *x, const double *y,
             dy -= box_size * nearbyint(dy / box_size);
             double r2 = dx * dx + dy * dy;
             if (r2 >= rc2) continue;
-            double sr2 = 1.0 / r2;
+            double sr2 = (SIGMA * SIGMA) / r2;
             double sr6 = sr2 * sr2 * sr2;
             double sr12 = sr6 * sr6;
-            double fmag = 24.0 * EPSILON * (2.0 * sr12 - sr6) * sr2;
+            double fmag = 24.0 * EPSILON * (2.0 * sr12 - sr6) / r2;
             fxi += fmag * dx;
             fyi += fmag * dy;
         }
@@ -85,7 +76,7 @@ __global__ void forces_tiled_kernel(const double *x, const double *y,
     }
 }
 
-__global__ void kick_kernel(double *vx, double *vy, const double *fx,
+__global__ void leapfrog_new_kernel(double *vx, double *vy, const double *fx,
                             const double *fy, unsigned int n) {
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
@@ -105,8 +96,10 @@ static void aos_to_soa(const Particle *p, unsigned int n, double *x, double *y,
 static void soa_to_aos(Particle *p, unsigned int n, const double *x,
                        const double *y, const double *vx, const double *vy) {
     for (unsigned int i = 0; i < n; ++i) {
-        p[i].x = x[i];   p[i].y = y[i];
-        p[i].vx = vx[i]; p[i].vy = vy[i];
+        p[i].x = x[i];   
+        p[i].y = y[i];
+        p[i].vx = vx[i]; 
+        p[i].vy = vy[i];
     }
 }
 
@@ -146,8 +139,8 @@ extern "C" SimulationResult run_simulation(Particle *particles, const SimOptions
 
     ge_GIF *gif = NULL;
     if (opts->gif_path) {
-        gif = lj_open_gif(opts->gif_path);
-        lj_render_frame(gif, particles, n, box_size);
+        gif = open_gif(opts->gif_path);
+        render_frame(gif, particles, n, box_size);
     }
 
     out.final_kinetic = out.start_kinetic;
@@ -155,9 +148,9 @@ extern "C" SimulationResult run_simulation(Particle *particles, const SimOptions
     out.final_total = out.start_total;
 
     for (unsigned int step = 0; step < opts->nsteps; step++) {
-        kick_drift_kernel<<<grid, block>>>(dx, dy, dvx, dvy, dfx, dfy, n, box_size);
+        leapfrog_current_kernel<<<grid, block>>>(dx, dy, dvx, dvy, dfx, dfy, n, box_size);
         forces_tiled_kernel<<<grid, block, shmem>>>(dx, dy, dfx, dfy, n, box_size);
-        kick_kernel<<<grid, block>>>(dvx, dvy, dfx, dfy, n);
+        leapfrog_new_kernel<<<grid, block>>>(dvx, dvy, dfx, dfy, n);
 
         if (opts->track_energy || (gif && FRAME_EVERY > 0 && (step + 1) % FRAME_EVERY == 0)) {
             checkCudaErrors(cudaMemcpy(hx, dx, n * sizeof(double), cudaMemcpyDeviceToHost));
@@ -171,7 +164,7 @@ extern "C" SimulationResult run_simulation(Particle *particles, const SimOptions
                 printf("step=%6u  KE=%12.6f  PE=%12.6f  E=%12.6f\n", step, ke, pe, ke + pe);
             }
             if (gif && FRAME_EVERY > 0 && (step + 1) % FRAME_EVERY == 0) {
-                lj_render_frame(gif, particles, n, box_size);
+                render_frame(gif, particles, n, box_size);
             }
         }
     }

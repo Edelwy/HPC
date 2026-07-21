@@ -5,7 +5,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "lennard_jones.h"
 #include "lennard_jones_common.h"
 
 #define DEFAULT_N     1000
@@ -21,22 +20,22 @@ int main(int argc, char **argv) {
     const char *gif_path = NULL;
     const char *final_path = NULL;
 
-    /* usage: ./lj.out [N] [--steps S] [--energy] [--gif path] [--final path] */
     int i = 1;
     if (i < argc && argv[i][0] != '-') {
         n = (unsigned int)strtoul(argv[i], NULL, 10);
         i++;
     }
     for (; i < argc; i++) {
-        if (!strcmp(argv[i], "--steps"))       nsteps = (unsigned int)strtoul(argv[++i], NULL, 10);
+        if (!strcmp(argv[i], "--steps")) nsteps = (unsigned int)strtoul(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--energy")) track_energy = 1;
-        else if (!strcmp(argv[i], "--gif"))    gif_path = argv[++i];
-        else if (!strcmp(argv[i], "--final"))  final_path = argv[++i];
+        else if (!strcmp(argv[i], "--gif")) gif_path = argv[++i];
+        else if (!strcmp(argv[i], "--final")) final_path = argv[++i];
     }
 
-    /* box size follows from particle count and target density */
+    // Box size follows from particle count and target density.
     double particle_box_size = ceil(sqrt((double)n / DENSITY));
     double box_size = (4.0 / 3.0) * particle_box_size;
+    // How much of the full box is used for placement.
     double box_fraction = particle_box_size / box_size;
 
     Particle *particles = (Particle *)calloc(n, sizeof(Particle));

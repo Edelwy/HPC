@@ -1,25 +1,24 @@
-# Build:  make METHOD=<seq|omp|gpu|cells|opt|gpu2>   (default: seq)
-#         make METHOD=gpu BLOCKSIZE=256              (GPU block-size tuning)
+# Build:  make METHOD=<seq|omp|gpu|cells|opt|gpu2>                
 # Clean:  make clean
 
-METHOD    ?= seq
-BLOCKSIZE ?= 128
+METHOD    ?= seq # default method is sequential.
+BLOCKSIZE ?= 128 # default block size is 128.
 
-ifeq ($(METHOD),seq)
+ifeq ($(METHOD),seq) 
     CC     = gcc
     CFLAGS = -O3 -Wall -std=c99
-    VARSRC = lennard_jones_seq.c
+    VARSRC = lennard_jones_seq.c # source code for sequential implementation.
 else ifeq ($(METHOD),omp)
     CC     = gcc
     CFLAGS = -O3 -Wall -std=c99 -fopenmp
-    VARSRC = lennard_jones_omp.c
+    VARSRC = lennard_jones_omp.c # source code for OpenMP implementation.
 else
     CC     = nvcc
     CFLAGS = -O3 -Wno-deprecated-gpu-targets -gencode=arch=compute_70,code=sm_70 -DBLOCKSIZE=$(BLOCKSIZE) -Xcompiler -Wall
-    VARSRC = lennard_jones_$(METHOD).cu
+    VARSRC = lennard_jones_$(METHOD).cu # source code for CUDA implementation.
 endif
 
-LDLIBS = -lm
+LDLIBS = -lm 
 TARGET = lj.out
 OBJS   = main.o lennard_jones_common.o gifenc.o lennard_jones_$(METHOD).o
 
@@ -41,4 +40,4 @@ lennard_jones_$(METHOD).o: $(VARSRC)
 clean:
 	rm -f *.o $(TARGET)
 
-.PHONY: clean
+.PHONY: clean 

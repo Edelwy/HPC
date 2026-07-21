@@ -2,23 +2,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "lennard_jones.h"
 #include "lennard_jones_common.h"
 
-/* Same Newton's-3rd-law loop as the sequential version, parallelised with an
- * OpenMP array-section reduction. Forces live in flat fx/fy arrays because the
- * reduction(+:fx[:n]) clause cannot target struct members. Each thread gets a
- * private copy of fx/fy that OpenMP sums back at the end, so the fx[j]-=/fy[j]-=
- * cross-particle writes stay race free. schedule(dynamic) balances the
- * triangular (j > i) iteration space. Requires OpenMP 4.5 (GCC >= 9). */
+// Same Newton's 3rd law loop as the sequential version, parallelised with an
+// OpenMP array-section reduction.
 static double compute_forces(const Particle *particles, double *fx, double *fy,
                              unsigned int n, double box_size, double v_shift) {
+    // Initialize forces to 0.
     for (unsigned int i = 0; i < n; ++i) {
         fx[i] = 0.0;
         fy[i] = 0.0;
     }
     double pe = 0.0;
-    const double rc2 = R_CUT * R_CUT;
+    const double rc2 = (R_CUT * SIGMA) * (R_CUT * SIGMA);
 
     #pragma omp parallel for reduction(+:pe) reduction(+:fx[:n]) reduction(+:fy[:n]) schedule(dynamic, 64)
     for (unsigned int i = 0; i < n; ++i) {
@@ -33,11 +29,11 @@ static double compute_forces(const Particle *particles, double *fx, double *fy,
             double r2 = dx * dx + dy * dy;
             if (r2 >= rc2) continue;
 
-            double sr2 = 1.0 / r2;
+            double sr2 = (SIGMA * SIGMA) / r2;
             double sr6 = sr2 * sr2 * sr2;
             double sr12 = sr6 * sr6;
 
-            double fmag = 24.0 * EPSILON * (2.0 * sr12 - sr6) * sr2;
+            double fmag = 24.0 * EPSILON * (2.0 * sr12 - sr6) / r2;
             double fxij = fmag * dx;
             double fyij = fmag * dy;
 
@@ -87,8 +83,8 @@ SimulationResult run_simulation(Particle *particles, const SimOptions *opts) {
 
     ge_GIF *gif = NULL;
     if (opts->gif_path) {
-        gif = lj_open_gif(opts->gif_path);
-        lj_render_frame(gif, particles, n, box_size);
+        gif = open_gif(opts->gif_path);
+        render_frame(gif, particles, n, box_size);
     }
 
     out.final_potential = out.start_potential;
@@ -104,7 +100,7 @@ SimulationResult run_simulation(Particle *particles, const SimOptions *opts) {
                    step, out.final_kinetic, out.final_potential, out.final_total);
         }
         if (gif && FRAME_EVERY > 0 && (step + 1) % FRAME_EVERY == 0) {
-            lj_render_frame(gif, particles, n, box_size);
+            render_frame(gif, particles, n, box_size);
         }
     }
 
